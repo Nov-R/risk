@@ -107,5 +107,3 @@ foreach ($routes as $route => $handler) {
 if (!$routeFound) {
     \App\Core\Http\Response::error('Route not found', 404);
 }
-
-$a = 1;
