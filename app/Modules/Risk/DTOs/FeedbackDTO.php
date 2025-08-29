@@ -11,6 +11,12 @@ namespace App\Modules\Risk\DTOs;
  * 包含反馈的基本信息、类型、状态和创建者等。
  */
 class FeedbackDTO {
+    public int $riskId;
+    public string $content;
+    public string $type;
+    public string $createdBy;
+    public string $status;
+
     /**
      * 构造函数
      *
@@ -21,12 +27,18 @@ class FeedbackDTO {
      * @param string $status 反馈状态，默认pending
      */
     public function __construct(
-        public readonly int $riskId,
-        public readonly string $content,
-        public readonly string $type,
-        public readonly string $createdBy,
-        public readonly string $status = 'pending'
-    ) {}
+        int $riskId,
+        string $content,
+        string $type,
+        string $createdBy,
+        string $status = 'pending'
+    ) {
+        $this->riskId = $riskId;
+        $this->content = $content;
+        $this->type = $type;
+        $this->createdBy = $createdBy;
+        $this->status = $status;
+    }
     
     /**
      * 从数组创建反馈DTO实例

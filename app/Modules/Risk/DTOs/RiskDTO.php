@@ -9,6 +9,14 @@ namespace App\Modules\Risk\DTOs;
  * 包含风险的基本信息、评估数据和应对措施。
  */
 class RiskDTO {
+    public string $name;
+    public string $description;
+    public int $probability;
+    public int $impact;
+    public string $status;
+    public ?string $mitigation;
+    public ?string $contingency;
+
     /**
      * 构造函数
      * 
@@ -21,14 +29,22 @@ class RiskDTO {
      * @param string|null $contingency 应急计划（可选）
      */
     public function __construct(
-        public readonly string $name,
-        public readonly string $description,
-        public readonly int $probability,
-        public readonly int $impact,
-        public readonly string $status,
-        public readonly ?string $mitigation = null,
-        public readonly ?string $contingency = null
-    ) {}
+        string $name,
+        string $description,
+        int $probability,
+        int $impact,
+        string $status,
+        ?string $mitigation = null,
+        ?string $contingency = null
+    ) {
+        $this->name = $name;
+        $this->description = $description;
+        $this->probability = $probability;
+        $this->impact = $impact;
+        $this->status = $status;
+        $this->mitigation = $mitigation;
+        $this->contingency = $contingency;
+    }
 
     /**
      * 从数组创建风险DTO实例

@@ -10,6 +10,13 @@ namespace App\Modules\Risk\DTOs;
  * 包含节点的基本信息、关联ID、状态和备注等。
  */
 class NodeDTO {
+    public string $type;
+    public string $reviewer;
+    public ?int $riskId;
+    public ?int $feedbackId;
+    public ?string $comments;
+    public string $status;
+
     /**
      * 构造函数
      *
@@ -21,13 +28,20 @@ class NodeDTO {
      * @param string $status 节点状态，默认pending
      */
     public function __construct(
-        public readonly string $type,
-        public readonly string $reviewer,
-        public readonly ?int $riskId = null,
-        public readonly ?int $feedbackId = null,
-        public readonly ?string $comments = null,
-        public readonly string $status = 'pending'
-    ) {}
+        string $type,
+        string $reviewer,
+        ?int $riskId = null,
+        ?int $feedbackId = null,
+        ?string $comments = null,
+        string $status = 'pending'
+    ) {
+        $this->type = $type;
+        $this->reviewer = $reviewer;
+        $this->riskId = $riskId;
+        $this->feedbackId = $feedbackId;
+        $this->comments = $comments;
+        $this->status = $status;
+    }
 
     /**
      * 从数组创建节点DTO实例
