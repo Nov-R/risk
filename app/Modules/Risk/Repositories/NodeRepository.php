@@ -56,7 +56,7 @@ class NodeRepository extends BaseRepository {
      */
     public function findNodeById(int $id): ?Node {
         $data = $this->findById($id);
-        return $data ? $this->mapToEntity($data) : null;
+        return $data ? Node::fromArray($data) : null;
     }
 
     /**
@@ -66,7 +66,7 @@ class NodeRepository extends BaseRepository {
      */
     public function findAllNodes(): array {
         $nodes = $this->findAll();
-        return array_map([$this, 'mapToEntity'], $nodes);
+        return array_map([Node::class, 'fromArray'], $nodes);
     }
 
     /**
@@ -80,7 +80,7 @@ class NodeRepository extends BaseRepository {
         $stmt = $this->query($sql, [$riskId]);
         $nodes = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $nodes);
+        return array_map([Node::class, 'fromArray'], $nodes);
     }
 
     /**
@@ -94,7 +94,7 @@ class NodeRepository extends BaseRepository {
         $stmt = $this->query($sql, [$feedbackId]);
         $nodes = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $nodes);
+        return array_map([Node::class, 'fromArray'], $nodes);
     }
 
     /**
@@ -108,7 +108,7 @@ class NodeRepository extends BaseRepository {
         $stmt = $this->query($sql, [$status]);
         $nodes = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $nodes);
+        return array_map([Node::class, 'fromArray'], $nodes);
     }
 
     /**
@@ -122,40 +122,6 @@ class NodeRepository extends BaseRepository {
         $stmt = $this->query($sql, [$type]);
         $nodes = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $nodes);
-    }
-
-    /**
-     * 将数据库记录映射为 Node 实体
-     *
-     * @param array $data 数据库记录数组
-     * @return Node 对应的实体对象
-     */
-    private function mapToEntity(array $data): Node {
-        $node = new Node(
-            $data['type'],
-            $data['reviewer'],
-            $data['risk_id'] ? (int)$data['risk_id'] : null,
-            $data['feedback_id'] ? (int)$data['feedback_id'] : null,
-            $data['comments'],
-            $data['status']
-        );
-
-        // Using Reflection to set protected properties
-        $reflection = new \ReflectionClass($node);
-        
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($node, (int)$data['id']);
-
-        $createdAtProperty = $reflection->getProperty('createdAt');
-        $createdAtProperty->setAccessible(true);
-        $createdAtProperty->setValue($node, new \DateTime($data['created_at']));
-
-        $updatedAtProperty = $reflection->getProperty('updatedAt');
-        $updatedAtProperty->setAccessible(true);
-        $updatedAtProperty->setValue($node, new \DateTime($data['updated_at']));
-
-        return $node;
+        return array_map([Node::class, 'fromArray'], $nodes);
     }
 }

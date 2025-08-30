@@ -158,7 +158,7 @@ class NodeService {
                 return null;
             }
 
-            return $this->formatNodeResponse($node);
+            return $node->toArray();
         } catch (\Exception $e) {
             Logger::error('节点获取失败', ['id' => $id, 'error' => $e->getMessage()]);
             throw $e;
@@ -179,7 +179,7 @@ class NodeService {
             }
 
             $nodes = $this->repository->findNodesByRiskId($riskId);
-            return array_map([$this, 'formatNodeResponse'], $nodes);
+            return array_map(fn($node) => $node->toArray(), $nodes);
         } catch (\Exception $e) {
             Logger::error('获取风险关联节点失败', ['risk_id' => $riskId, 'error' => $e->getMessage()]);
             throw $e;
@@ -200,7 +200,7 @@ class NodeService {
             }
 
             $nodes = $this->repository->findNodesByFeedbackId($feedbackId);
-            return array_map([$this, 'formatNodeResponse'], $nodes);
+            return array_map(fn($node) => $node->toArray(), $nodes);
         } catch (\Exception $e) {
             Logger::error('获取反馈关联节点失败', ['feedback_id' => $feedbackId, 'error' => $e->getMessage()]);
             throw $e;
@@ -216,7 +216,7 @@ class NodeService {
     public function getPendingReviews(string $type): array {
         try {
             $nodes = $this->repository->findPendingNodesByType($type);
-            return array_map([$this, 'formatNodeResponse'], $nodes);
+            return array_map(fn($node) => $node->toArray(), $nodes);
         } catch (\Exception $e) {
             Logger::error('获取待审查节点失败', ['type' => $type, 'error' => $e->getMessage()]);
             throw $e;
@@ -361,32 +361,5 @@ class NodeService {
             Logger::error('权限检查失败', ['reviewer' => $reviewerId, 'type' => $nodeType]);
             return false;
         }
-    }
-
-    /**
-     * 格式化节点实体为 API 响应格式
-     *
-     * @param mixed $node 节点实体
-     * @return array 格式化后的数组
-     */
-    private function formatNodeResponse($node): array {
-        if (!$node) {
-            return [];
-        }
-
-        $createdAt = $node->getCreatedAt();
-        $updatedAt = $node->getUpdatedAt();
-        
-        return [
-            'id' => $node->getId(),
-            'type' => $node->getType() ?? 'unknown',
-            'risk_id' => $node->getRiskId() ?? null,
-            'feedback_id' => $node->getFeedbackId() ?? null,
-            'status' => $node->getStatus() ?? 'pending',
-            'reviewer' => $node->getReviewer() ?? null,
-            'comments' => $node->getComments() ?? '',
-            'created_at' => $createdAt ? $createdAt->format('Y-m-d H:i:s') : null,
-            'updated_at' => $updatedAt ? $updatedAt->format('Y-m-d H:i:s') : null
-        ];
     }
 }

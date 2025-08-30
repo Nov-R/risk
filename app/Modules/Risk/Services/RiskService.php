@@ -141,7 +141,7 @@ class RiskService {
                 return null;
             }
 
-            return $this->formatRiskResponse($risk);
+            return $risk->toArray();
         } catch (\Exception $e) {
             Logger::error('风险获取失败', ['id' => $id, 'error' => $e->getMessage()]);
             throw $e;
@@ -157,7 +157,7 @@ class RiskService {
     public function getAllRisks(): array {
         try {
             $risks = $this->repository->findAllRisks();
-            return array_map([$this, 'formatRiskResponse'], $risks);
+            return array_map(fn($risk) => $risk->toArray(), $risks);
         } catch (\Exception $e) {
             Logger::error('风险列表获取失败', ['error' => $e->getMessage()]);
             throw $e;
@@ -178,7 +178,7 @@ class RiskService {
     public function getRisksByStatus(string $status): array {
         try {
             $risks = $this->repository->findRisksByStatus($status);
-            return array_map([$this, 'formatRiskResponse'], $risks);
+            return array_map(fn($risk) => $risk->toArray(), $risks);
         } catch (\Exception $e) {
             Logger::error('按状态获取风险列表失败', ['status' => $status, 'error' => $e->getMessage()]);
             throw $e;
@@ -202,43 +202,10 @@ class RiskService {
             }
             
             $risks = $this->repository->findHighRisks($threshold);
-            return array_map([$this, 'formatRiskResponse'], $risks);
+            return array_map(fn($risk) => $risk->toArray(), $risks);
         } catch (\Exception $e) {
             Logger::error('高风险列表获取失败', ['threshold' => $threshold, 'error' => $e->getMessage()]);
             throw $e;
         }
-    }
-
-    /**
-     * 格式化风险记录响应
-     * 
-     * 将风险实体对象转换为适合API响应的数组格式，
-     * 包括处理空值和格式化日期时间。
-     * 
-     * @param mixed $risk 风险实体对象
-     * @return array 格式化后的风险数据
-     */
-    private function formatRiskResponse($risk): array {
-        if (!$risk) {
-            return [];
-        }
-        
-        $createdAt = $risk->getCreatedAt();
-        $updatedAt = $risk->getUpdatedAt();
-        
-        return [
-            'id' => $risk->getId(),
-            'name' => $risk->getName() ?? '',
-            'description' => $risk->getDescription() ?? '',
-            'probability' => $risk->getProbability() ?? 0,
-            'impact' => $risk->getImpact() ?? 0,
-            'risk_score' => $risk->calculateRiskScore() ?? 0,
-            'status' => $risk->getStatus() ?? '未知',
-            'mitigation' => $risk->getMitigation() ?? '',
-            'contingency' => $risk->getContingency() ?? '',
-            'created_at' => $createdAt ? $createdAt->format('Y-m-d H:i:s') : null,
-            'updated_at' => $updatedAt ? $updatedAt->format('Y-m-d H:i:s') : null,
-            'requires_immediate_action' => $risk->requiresImmediateAction() ?? false
-        ];
     }
 }

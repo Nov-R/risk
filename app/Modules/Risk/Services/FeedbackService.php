@@ -150,7 +150,7 @@ class FeedbackService {
             if (!$feedback) {
                 return null;
             }
-            return $this->formatFeedbackResponse($feedback);
+            return $feedback->toArray();
         } catch (\Exception $e) {
             Logger::error('获取反馈失败', ['id' => $id, 'error' => $e->getMessage()]);
             throw $e;
@@ -170,7 +170,7 @@ class FeedbackService {
                 throw new \RuntimeException('未找到指定的风险');
             }
             $feedbacks = $this->repository->findFeedbacksByRiskId($riskId);
-            return array_map([$this, 'formatFeedbackResponse'], $feedbacks);
+            return array_map(fn($feedback) => $feedback->toArray(), $feedbacks);
         } catch (\Exception $e) {
             Logger::error('获取风险相关反馈失败', ['risk_id' => $riskId, 'error' => $e->getMessage()]);
             throw $e;
@@ -187,34 +187,10 @@ class FeedbackService {
     public function getFeedbacksByStatus(string $status): array {
         try {
             $feedbacks = $this->repository->findFeedbacksByStatus($status);
-            return array_map([$this, 'formatFeedbackResponse'], $feedbacks);
+            return array_map(fn($feedback) => $feedback->toArray(), $feedbacks);
         } catch (\Exception $e) {
             Logger::error('按状态获取反馈失败', ['status' => $status, 'error' => $e->getMessage()]);
             throw $e;
         }
-    }
-
-    /**
-     * 格式化反馈响应
-     *
-     * @param mixed $feedback 反馈实体对象
-     * @return array 格式化后的反馈数据
-     */
-    private function formatFeedbackResponse($feedback): array {
-        if (!$feedback) {
-            return [];
-        }
-        $createdAt = $feedback->getCreatedAt();
-        $updatedAt = $feedback->getUpdatedAt();
-        return [
-            'id' => $feedback->getId(),
-            'risk_id' => $feedback->getRiskId() ?? 0,
-            'content' => $feedback->getContent() ?? '',
-            'type' => $feedback->getType() ?? 'general',
-            'status' => $feedback->getStatus() ?? 'pending',
-            'created_by' => $feedback->getCreatedBy() ?? 'system',
-            'created_at' => $createdAt ? $createdAt->format('Y-m-d H:i:s') : null,
-            'updated_at' => $updatedAt ? $updatedAt->format('Y-m-d H:i:s') : null
-        ];
     }
 }

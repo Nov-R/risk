@@ -172,4 +172,60 @@ class Node {
         $this->setStatus('rejected');
         $this->setComments($comments);
     }
+
+    /**
+     * 从数组创建 Node 实体
+     * 
+     * @param array $data 数据库记录数组
+     * @return Node 节点实体
+     */
+    public static function fromArray(array $data): Node {
+        $node = new self(
+            $data['type'],
+            $data['reviewer'],
+            $data['risk_id'] ? (int)$data['risk_id'] : null,
+            $data['feedback_id'] ? (int)$data['feedback_id'] : null,
+            $data['comments'],
+            $data['status']
+        );
+
+        // 反射设置受保护属性
+        $reflection = new \ReflectionClass($node);
+        
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($node, (int)$data['id']);
+
+        $createdAtProperty = $reflection->getProperty('createdAt');
+        $createdAtProperty->setAccessible(true);
+        $createdAtProperty->setValue($node, new \DateTime($data['created_at']));
+
+        $updatedAtProperty = $reflection->getProperty('updatedAt');
+        $updatedAtProperty->setAccessible(true);
+        $updatedAtProperty->setValue($node, new \DateTime($data['updated_at']));
+
+        return $node;
+    }
+
+    /**
+     * 将实体转换为数组格式
+     * 
+     * @return array 格式化后的实体数据
+     */
+    public function toArray(): array {
+        return [
+            'id' => $this->id,
+            'risk_id' => $this->riskId,
+            'feedback_id' => $this->feedbackId,
+            'type' => $this->type ?? 'unknown',
+            'status' => $this->status ?? 'pending',
+            'reviewer' => $this->reviewer ?? '',
+            'comments' => $this->comments,
+            'created_at' => $this->createdAt ? $this->createdAt->format('Y-m-d H:i:s') : null,
+            'updated_at' => $this->updatedAt ? $this->updatedAt->format('Y-m-d H:i:s') : null,
+            'is_pending' => $this->isPending(),
+            'is_approved' => $this->isApproved(),
+            'is_rejected' => $this->isRejected()
+        ];
+    }
 }

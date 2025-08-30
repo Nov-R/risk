@@ -59,7 +59,7 @@ class RiskRepository extends BaseRepository {
      */
     public function findRiskById(int $id): ?Risk {
         $data = $this->findById($id);
-        return $data ? $this->mapToEntity($data) : null;
+        return $data ? Risk::fromArray($data) : null;
     }
 
     /**
@@ -69,7 +69,7 @@ class RiskRepository extends BaseRepository {
      */
     public function findAllRisks(): array {
         $risks = $this->findAll();
-        return array_map([$this, 'mapToEntity'], $risks);
+        return array_map([Risk::class, 'fromArray'], $risks);
     }
 
     /**
@@ -83,7 +83,7 @@ class RiskRepository extends BaseRepository {
         $stmt = $this->query($sql, [$status]);
         $risks = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $risks);
+        return array_map([Risk::class, 'fromArray'], $risks);
     }
 
     /**
@@ -97,7 +97,7 @@ class RiskRepository extends BaseRepository {
         $stmt = $this->query($sql, [$threshold]);
         $risks = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $risks);
+        return array_map([Risk::class, 'fromArray'], $risks);
     }
 
     /**
@@ -112,7 +112,7 @@ class RiskRepository extends BaseRepository {
         $stmt = $this->query($sql, [$startDate, $endDate]);
         $risks = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $risks);
+        return array_map([Risk::class, 'fromArray'], $risks);
     }
 
     /**
@@ -127,7 +127,7 @@ class RiskRepository extends BaseRepository {
         $stmt = $this->query($sql);
         $risks = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $risks);
+        return array_map([Risk::class, 'fromArray'], $risks);
     }
 
     /**
@@ -143,42 +143,7 @@ class RiskRepository extends BaseRepository {
         $stmt = $this->query($sql, [$minScore, $maxScore]);
         $risks = $stmt->fetchAll();
         
-        return array_map([$this, 'mapToEntity'], $risks);
-    }
-
-    /**
-     * 将数据库记录映射到实体对象
-     *
-     * @param array $data 数据库记录
-     * @return Risk 风险实体
-     */
-    private function mapToEntity(array $data): Risk {
-        $risk = new Risk(
-            $data['name'],
-            $data['description'],
-            (int)$data['probability'],
-            (int)$data['impact'],
-            $data['status'],
-            $data['mitigation'],
-            $data['contingency']
-        );
-
-        // 使用反射设置protected属性
-        $reflection = new \ReflectionClass($risk);
-        
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($risk, (int)$data['id']);
-
-        $createdAtProperty = $reflection->getProperty('createdAt');
-        $createdAtProperty->setAccessible(true);
-        $createdAtProperty->setValue($risk, new \DateTime($data['created_at']));
-
-        $updatedAtProperty = $reflection->getProperty('updatedAt');
-        $updatedAtProperty->setAccessible(true);
-        $updatedAtProperty->setValue($risk, new \DateTime($data['updated_at']));
-
-        return $risk;
+        return array_map([Risk::class, 'fromArray'], $risks);
     }
 
     /**

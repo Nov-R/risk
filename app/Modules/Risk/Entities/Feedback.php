@@ -127,4 +127,55 @@ class Feedback {
     public function reject(): void {
         $this->setStatus('rejected');
     }
+
+    /**
+     * 从数组创建 Feedback 实体
+     * 
+     * @param array $data 数据库记录数组
+     * @return Feedback 反馈实体
+     */
+    public static function fromArray(array $data): Feedback {
+        $feedback = new self(
+            (int)$data['risk_id'],
+            $data['content'],
+            $data['type'],
+            $data['created_by'],
+            $data['status']
+        );
+
+        // 反射设置受保护属性
+        $reflection = new \ReflectionClass($feedback);
+        
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($feedback, (int)$data['id']);
+
+        $createdAtProperty = $reflection->getProperty('createdAt');
+        $createdAtProperty->setAccessible(true);
+        $createdAtProperty->setValue($feedback, new \DateTime($data['created_at']));
+
+        $updatedAtProperty = $reflection->getProperty('updatedAt');
+        $updatedAtProperty->setAccessible(true);
+        $updatedAtProperty->setValue($feedback, new \DateTime($data['updated_at']));
+
+        return $feedback;
+    }
+
+    /**
+     * 将实体转换为数组格式
+     * 
+     * @return array 格式化后的实体数据
+     */
+    public function toArray(): array {
+        return [
+            'id' => $this->id,
+            'risk_id' => $this->riskId ?? 0,
+            'content' => $this->content ?? '',
+            'type' => $this->type ?? 'general',
+            'status' => $this->status ?? 'pending',
+            'created_by' => $this->createdBy ?? 'system',
+            'created_at' => $this->createdAt ? $this->createdAt->format('Y-m-d H:i:s') : null,
+            'updated_at' => $this->updatedAt ? $this->updatedAt->format('Y-m-d H:i:s') : null
+        ];
+    }
 }
