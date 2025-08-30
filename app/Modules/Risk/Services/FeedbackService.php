@@ -2,10 +2,10 @@
 
 namespace App\Modules\Risk\Services;
 
-use App\Modules\Risk\DTOs\FeedbackDTO;
 use App\Modules\Risk\Repositories\FeedbackRepository;
 use App\Modules\Risk\Repositories\RiskRepository;
 use App\Modules\Risk\Validators\FeedbackValidator;
+use App\Modules\Risk\Entities\Feedback;
 use App\Core\Exceptions\ValidationException;
 use App\Core\Utils\Logger;
 use RuntimeException;
@@ -70,8 +70,8 @@ class FeedbackService {
                 $data['content'] = htmlspecialchars(trim($data['content']), ENT_QUOTES, 'UTF-8');
             }
             $this->validator->validate($data);
-            $feedbackDTO = FeedbackDTO::fromArray($data);
-            $feedbackId = $this->repository->createFeedback($feedbackDTO);
+            $feedback = Feedback::fromArray($data);
+            $feedbackId = $this->repository->createFeedback($feedback);
             Logger::info('反馈创建成功', ['id' => $feedbackId, 'risk_id' => $data['risk_id']]);
             return $feedbackId;
         } catch (ValidationException $e) {
@@ -84,7 +84,7 @@ class FeedbackService {
     }
 
     /**
-     * 更新反馈记录
+     * 更新反馈记录（部分更新）
      *
      * @param int $id 反馈ID
      * @param array $data 更新数据
@@ -104,10 +104,9 @@ class FeedbackService {
             if (isset($data['content'])) {
                 $data['content'] = htmlspecialchars(trim($data['content']), ENT_QUOTES, 'UTF-8');
             }
-            $mergedData = array_merge(['risk_id' => $feedback->getRiskId()], $data);
-            $this->validator->validate($mergedData);
-            $feedbackDTO = FeedbackDTO::fromArray($mergedData);
-            $result = $this->repository->updateFeedback($id, $feedbackDTO);
+            // 只校验传入的字段，不要求所有字段必填
+            $this->validator->validatePartialUpdate($data);
+            $result = $this->repository->updateFeedback($id, $data);
             Logger::info('反馈更新成功', ['id' => $id]);
             return $result;
         } catch (\Exception $e) {

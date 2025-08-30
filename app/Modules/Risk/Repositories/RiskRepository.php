@@ -4,7 +4,6 @@ namespace App\Modules\Risk\Repositories;
 
 use App\Core\Database\BaseRepository;
 use App\Modules\Risk\Entities\Risk;
-use App\Modules\Risk\DTOs\RiskDTO;
 use PDO;
 
 /**
@@ -23,22 +22,22 @@ class RiskRepository extends BaseRepository {
     /**
      * 创建风险
      *
-     * @param RiskDTO $riskDTO 风险数据传输对象
+     * @param Risk $risk 风险实体对象
      * @return int 新创建的风险ID
      */
-    public function createRisk(RiskDTO $riskDTO): int {
-        return $this->create($riskDTO->toArray());
+    public function createRisk(Risk $risk): int {
+        return $this->create($risk->toArray());
     }
 
     /**
-     * 更新风险
+     * 更新风险（部分更新）
      *
      * @param int $id 风险ID
-     * @param RiskDTO $riskDTO 风险数据传输对象
+     * @param array $data 要更新的数据数组（部分字段）
      * @return bool 是否更新成功
      */
-    public function updateRisk(int $id, RiskDTO $riskDTO): bool {
-        return $this->update($id, $riskDTO->toArray());
+    public function updateRisk(int $id, array $data): bool {
+        return $this->update($id, $data);
     }
 
     /**

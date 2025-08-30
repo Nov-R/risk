@@ -2,9 +2,9 @@
 
 namespace App\Modules\Risk\Services;
 
-use App\Modules\Risk\DTOs\RiskDTO;
 use App\Modules\Risk\Repositories\RiskRepository;
 use App\Modules\Risk\Validators\RiskValidator;
+use App\Modules\Risk\Entities\Risk;
 use App\Core\Exceptions\ValidationException;
 use App\Core\Utils\Logger;
 use RuntimeException;
@@ -55,8 +55,8 @@ class RiskService {
     public function createRisk(array $data): int {
         try {
             $this->validator->validate($data);
-            $riskDTO = RiskDTO::fromArray($data);
-            $riskId = $this->repository->createRisk($riskDTO);
+            $risk = Risk::fromArray($data);
+            $riskId = $this->repository->createRisk($risk);
             
             Logger::info('风险创建成功', ['id' => $riskId]);
             return $riskId;
@@ -70,7 +70,7 @@ class RiskService {
     }
 
     /**
-     * 更新风险记录
+     * 更新风险记录（部分更新）
      * 
      * @param int $id 要更新的风险记录ID
      * @param array $data 更新的数据，可包含：
@@ -92,9 +92,9 @@ class RiskService {
                 throw new \RuntimeException('未找到指定风险');
             }
 
-            $this->validator->validate($data);
-            $riskDTO = RiskDTO::fromArray($data);
-            $result = $this->repository->updateRisk($id, $riskDTO);
+            // 只校验传入的字段，不要求所有字段必填
+            $this->validator->validatePartialUpdate($data);
+            $result = $this->repository->updateRisk($id, $data);
             
             Logger::info('风险更新成功', ['id' => $id]);
             return $result;

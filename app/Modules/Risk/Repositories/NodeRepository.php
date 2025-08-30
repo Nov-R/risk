@@ -4,7 +4,6 @@ namespace App\Modules\Risk\Repositories;
 
 use App\Core\Database\BaseRepository;
 use App\Modules\Risk\Entities\Node;
-use App\Modules\Risk\DTOs\NodeDTO;
 use PDO;
 
 class NodeRepository extends BaseRepository {
@@ -20,22 +19,22 @@ class NodeRepository extends BaseRepository {
     /**
      * 创建节点记录
      *
-     * @param NodeDTO $nodeDTO 节点数据传输对象
+     * @param Node $node 节点实体对象
      * @return int 新创建记录的 ID
      */
-    public function createNode(NodeDTO $nodeDTO): int {
-        return $this->create($nodeDTO->toArray());
+    public function createNode(Node $node): int {
+        return $this->create($node->toArray());
     }
 
     /**
-     * 更新指定 ID 的节点
+     * 更新指定 ID 的节点（部分更新）
      *
      * @param int $id 节点 ID
-     * @param NodeDTO $nodeDTO 节点数据传输对象
+     * @param array $data 要更新的数据数组（部分字段）
      * @return bool 是否更新成功
      */
-    public function updateNode(int $id, NodeDTO $nodeDTO): bool {
-        return $this->update($id, $nodeDTO->toArray());
+    public function updateNode(int $id, array $data): bool {
+        return $this->update($id, $data);
     }
 
     /**

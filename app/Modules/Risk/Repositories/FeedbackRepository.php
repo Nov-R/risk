@@ -4,7 +4,6 @@ namespace App\Modules\Risk\Repositories;
 
 use App\Core\Database\BaseRepository;
 use App\Modules\Risk\Entities\Feedback;
-use App\Modules\Risk\DTOs\FeedbackDTO;
 use PDO;
 
 
@@ -24,21 +23,21 @@ class FeedbackRepository extends BaseRepository {
 
     /**
      * 创建反馈
-     * @param FeedbackDTO $feedbackDTO 反馈数据传输对象
+     * @param Feedback $feedback 反馈实体对象
      * @return int 新建反馈ID
      */
-    public function createFeedback(FeedbackDTO $feedbackDTO): int {
-        return $this->create($feedbackDTO->toArray());
+    public function createFeedback(Feedback $feedback): int {
+        return $this->create($feedback->toArray());
     }
 
     /**
-     * 更新反馈
+     * 更新反馈（部分更新）
      * @param int $id 反馈ID
-     * @param FeedbackDTO $feedbackDTO 反馈数据传输对象
+     * @param array $data 要更新的数据数组（部分字段）
      * @return bool 是否更新成功
      */
-    public function updateFeedback(int $id, FeedbackDTO $feedbackDTO): bool {
-        return $this->update($id, $feedbackDTO->toArray());
+    public function updateFeedback(int $id, array $data): bool {
+        return $this->update($id, $data);
     }
 
     /**

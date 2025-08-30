@@ -78,4 +78,53 @@ class FeedbackValidator {
             throw new ValidationException($errors);
         }
     }
+
+    /**
+     * 验证部分更新的反馈数据
+     * 
+     * @param array $data 要验证的反馈数据（只包含需要更新的字段）
+     * @throws ValidationException 当验证失败时
+     */
+    public function validatePartialUpdate(array $data): void {
+        $errors = [];
+
+        // Validate risk_id (if provided, but usually shouldn't be changed)
+        if (isset($data['risk_id'])) {
+            if (!is_numeric($data['risk_id']) || $data['risk_id'] < 1) {
+                $errors['risk_id'] = '无效的风险ID';
+            }
+        }
+
+        // Validate content (if provided)
+        if (isset($data['content']) && empty($data['content'])) {
+            $errors['content'] = '反馈内容不能为空';
+        }
+
+        // Validate type (if provided)
+        if (isset($data['type'])) {
+            if (empty($data['type'])) {
+                $errors['type'] = '反馈类型不能为空';
+            } elseif (!in_array($data['type'], self::ALLOWED_TYPES)) {
+                $errors['type'] = '无效的反馈类型';
+            }
+        }
+
+        // Validate created_by (if provided, but usually shouldn't be changed)
+        if (isset($data['created_by'])) {
+            if (empty($data['created_by'])) {
+                $errors['created_by'] = '创建者信息不能为空';
+            } elseif (strlen($data['created_by']) > 255) {
+                $errors['created_by'] = '创建者名称不能超过255个字符';
+            }
+        }
+
+        // Validate status (if provided)
+        if (isset($data['status']) && !in_array($data['status'], self::ALLOWED_STATUSES)) {
+            $errors['status'] = '无效的状态值';
+        }
+
+        if (!empty($errors)) {
+            throw new ValidationException($errors);
+        }
+    }
 }

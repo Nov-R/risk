@@ -2,11 +2,11 @@
 
 namespace App\Modules\Risk\Services;
 
-use App\Modules\Risk\DTOs\NodeDTO;
 use App\Modules\Risk\Repositories\NodeRepository;
 use App\Modules\Risk\Repositories\RiskRepository;
 use App\Modules\Risk\Repositories\FeedbackRepository;
 use App\Modules\Risk\Validators\NodeValidator;
+use App\Modules\Risk\Entities\Node;
 use App\Core\Exceptions\ValidationException;
 use App\Core\Utils\Logger;
 use RuntimeException;
@@ -59,8 +59,8 @@ class NodeService {
             }
 
             $this->validator->validate($data);
-            $nodeDTO = NodeDTO::fromArray($data);
-            $nodeId = $this->repository->createNode($nodeDTO);
+            $node = Node::fromArray($data);
+            $nodeId = $this->repository->createNode($node);
             
             Logger::info('节点创建成功', ['id' => $nodeId, 'type' => $data['type']]);
             return $nodeId;
@@ -111,9 +111,9 @@ class NodeService {
                 'feedback_id' => $node->getFeedbackId(),
             ], $data);
 
-            $this->validator->validate($mergedData);
-            $nodeDTO = NodeDTO::fromArray($mergedData);
-            $result = $this->repository->updateNode($id, $nodeDTO);
+            // 只校验传入的字段，不要求所有字段必填
+            $this->validator->validatePartialUpdate($data);
+            $result = $this->repository->updateNode($id, $data);
             
             Logger::info('节点更新成功', ['id' => $id]);
             return $result;
@@ -262,8 +262,7 @@ class NodeService {
                 $data['feedback_id'] = $node->getFeedbackId();
             }
 
-            $nodeDTO = NodeDTO::fromArray($data);
-            $result = $this->repository->updateNode($id, $nodeDTO);
+            $result = $this->repository->updateNode($id, $data);
             
             Logger::info('节点审核通过', ['id' => $id, 'reviewer' => $reviewerId]);
             return $result;
@@ -325,8 +324,7 @@ class NodeService {
                 $data['feedback_id'] = $node->getFeedbackId();
             }
 
-            $nodeDTO = NodeDTO::fromArray($data);
-            $result = $this->repository->updateNode($id, $nodeDTO);
+            $result = $this->repository->updateNode($id, $data);
             
             Logger::info('节点已被拒绝', ['id' => $id, 'reviewer' => $reviewerId]);
             return $result;

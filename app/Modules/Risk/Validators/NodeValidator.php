@@ -86,4 +86,51 @@ class NodeValidator {
             throw new ValidationException($errors);
         }
     }
+
+    /**
+     * 验证部分更新数据
+     * 
+     * @param array $data 要验证的部分更新数据
+     * @throws ValidationException 当验证失败时
+     */
+    public function validatePartialUpdate(array $data): void {
+        $errors = [];
+
+        // 验证类型（如果提供）
+        if (isset($data['type'])) {
+            if (empty($data['type'])) {
+                $errors['type'] = '节点类型不能为空';
+            } elseif (!in_array($data['type'], self::ALLOWED_TYPES)) {
+                $errors['type'] = '无效的节点类型';
+            }
+        }
+
+        // 验证审核人（如果提供）
+        if (isset($data['reviewer'])) {
+            if (empty($data['reviewer'])) {
+                $errors['reviewer'] = '审核人不能为空';
+            } elseif (strlen($data['reviewer']) > 255) {
+                $errors['reviewer'] = '审核人名称不能超过255个字符';
+            }
+        }
+
+        // 验证状态（如果提供）
+        if (isset($data['status']) && !in_array($data['status'], self::ALLOWED_STATUSES)) {
+            $errors['status'] = '无效的状态值';
+        }
+
+        // 验证备注（如果提供）
+        if (isset($data['comments']) && !is_string($data['comments'])) {
+            $errors['comments'] = '备注必须是字符串类型';
+        }
+
+        // 验证关联ID（如果提供）
+        if (isset($data['risk_id']) && isset($data['feedback_id'])) {
+            $errors['id_conflict'] = '不能同时设置风险ID和反馈ID';
+        }
+
+        if (!empty($errors)) {
+            throw new ValidationException($errors);
+        }
+    }
 }
