@@ -4,9 +4,8 @@ namespace App\Core\Database;
 
 use PDO;
 use PDOStatement;
+use PDOException;
 use App\Core\Exceptions\DatabaseException;
-
-use PDOStatement as PDOStatementAlias;
 
 /**
  * 基础仓储类
@@ -41,7 +40,7 @@ abstract class BaseRepository {
             $stmt = $this->db->prepare($sql);
             $stmt->execute(array_values($data));
             return (int)$this->db->lastInsertId();
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             throw new DatabaseException("创建记录失败：" . $e->getMessage());
         }
     }
@@ -61,7 +60,7 @@ abstract class BaseRepository {
         try {
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([...array_values($data), $id]);
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             throw new DatabaseException("更新记录失败：" . $e->getMessage());
         }
     }
@@ -79,7 +78,7 @@ abstract class BaseRepository {
         try {
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([$id]);
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             throw new DatabaseException("删除记录失败：" . $e->getMessage());
         }
     }
@@ -99,7 +98,7 @@ abstract class BaseRepository {
             $stmt->execute([$id]);
             $result = $stmt->fetch();
             return $result ?: null;
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             throw new DatabaseException("查找记录失败：" . $e->getMessage());
         }
     }
@@ -117,7 +116,7 @@ abstract class BaseRepository {
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll();
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             throw new DatabaseException("获取记录列表失败：" . $e->getMessage());
         }
     }
@@ -127,15 +126,15 @@ abstract class BaseRepository {
      *
      * @param string $sql SQL 语句
      * @param array $params 绑定参数
-     * @return PDOStatementAlias 已执行的 PDOStatement
+    * @return PDOStatement 已执行的 PDOStatement
      * @throws DatabaseException 当底层 PDO 出错时抛出
      */
-    protected function query(string $sql, array $params = []): PDOStatementAlias {
+    protected function query(string $sql, array $params = []): PDOStatement {
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt;
-        } catch (\PDOException $e) {
+        } catch (PDOException $e) {
             throw new DatabaseException("查询执行失败：" . $e->getMessage());
         }
     }
