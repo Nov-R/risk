@@ -36,6 +36,9 @@ ini_set('display_errors', 1);
 // 初始化日志系统
 \App\Core\Utils\Logger::init(__DIR__ . '/../logs/app.log');
 
+// 初始化依赖注入容器
+$container = \App\Core\Container::getInstance();
+
 // 应用请求限制中间件
 $requestLimitMiddleware = new \App\Core\Middleware\RequestLimitMiddleware();
 if (!$requestLimitMiddleware->handle()) {
@@ -45,31 +48,6 @@ if (!$requestLimitMiddleware->handle()) {
 // 解析请求URL
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
-
-// 初始化控制器
-$riskController = new \App\Modules\Risk\Controllers\RiskController(
-    new \App\Modules\Risk\Services\RiskService(
-        new \App\Modules\Risk\Repositories\RiskRepository(),
-        new \App\Modules\Risk\Validators\RiskValidator()
-    )
-);
-
-$feedbackController = new \App\Modules\Risk\Controllers\FeedbackController(
-    new \App\Modules\Risk\Services\FeedbackService(
-        new \App\Modules\Risk\Repositories\FeedbackRepository(),
-        new \App\Modules\Risk\Repositories\RiskRepository(),
-        new \App\Modules\Risk\Validators\FeedbackValidator()
-    )
-);
-
-$nodeController = new \App\Modules\Risk\Controllers\NodeController(
-    new \App\Modules\Risk\Services\NodeService(
-        new \App\Modules\Risk\Repositories\NodeRepository(),
-        new \App\Modules\Risk\Repositories\RiskRepository(),
-        new \App\Modules\Risk\Repositories\FeedbackRepository(),
-        new \App\Modules\Risk\Validators\NodeValidator()
-    )
-);
 
 // 路由处理
 $routes = require __DIR__ . '/../app/Modules/Risk/routes.php';
@@ -84,21 +62,25 @@ foreach ($routes as $route => $handler) {
         if (isset($handler[$method])) {
             $routeFound = true;
             $action = $handler[$method];
-            [$controller, $method] = explode('@', $action);
+            [$controllerName, $methodName] = explode('@', $action);
             
-            switch ($controller) {
+            // 按需初始化控制器
+            switch ($controllerName) {
                 case 'RiskController':
-                    $controller = $riskController;
+                    $controller = $container->make(\App\Modules\Risk\Controllers\RiskController::class);
                     break;
                 case 'FeedbackController':
-                    $controller = $feedbackController;
+                    $controller = $container->make(\App\Modules\Risk\Controllers\FeedbackController::class);
                     break;
                 case 'NodeController':
-                    $controller = $nodeController;
+                    $controller = $container->make(\App\Modules\Risk\Controllers\NodeController::class);
                     break;
+                default:
+                    \App\Core\Http\Response::error('Controller not found', 404);
+                    exit();
             }
             
-            call_user_func_array([$controller, $method], $matches);
+            call_user_func_array([$controller, $methodName], $matches);
             break;
         }
     }
