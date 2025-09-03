@@ -1,0 +1,11 @@
+parameters:
+    level: 8
+    paths:
+        - app
+    excludePaths:
+        - app/Core/Database/migrations
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    ignoreErrors:
+        - '#Call to an undefined method [a-zA-Z0-9\\_]+::getClass\(\)#'
+        - '#Parameter \#1 \$[a-zA-Z0-9]+ of class ReflectionClass constructor expects#'

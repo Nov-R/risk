@@ -1,0 +1,53 @@
+{
+    "name": "nov-r/risk-management-system",
+    "description": "PHP风险管理系统 - 基于原生PHP的模块化风险管理平台",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nov-R",
+            "email": "your-email@example.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0|^8.1|^8.2|^8.3",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "vlucas/phpdotenv": "^5.5",
+        "predis/predis": "^2.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6|^10.0",
+        "phpstan/phpstan": "^1.10",
+        "squizlabs/php_codesniffer": "^3.7",
+        "php-coveralls/php-coveralls": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage",
+        "phpstan": "phpstan analyse",
+        "phpcs": "phpcs --standard=PSR12 app/",
+        "phpcbf": "phpcbf --standard=PSR12 app/",
+        "quality": [
+            "@phpcs",
+            "@phpstan",
+            "@test"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

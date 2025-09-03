@@ -1,0 +1,116 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: risk_management_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, redis
+        coverage: xdebug
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+
+    - name: Create environment file
+      run: |
+        cp .env.example .env
+        echo "DB_HOST=127.0.0.1" >> .env
+        echo "DB_DATABASE=risk_management_test" >> .env
+        echo "DB_USERNAME=root" >> .env
+        echo "DB_PASSWORD=root" >> .env
+        echo "REDIS_HOST=127.0.0.1" >> .env
+
+    - name: Setup database
+      run: |
+        mysql -h 127.0.0.1 -u root -proot -e "CREATE DATABASE IF NOT EXISTS risk_management_test;"
+        mysql -h 127.0.0.1 -u root -proot risk_management_test < database/schema.sql
+
+    - name: Create logs directory
+      run: mkdir -p logs && chmod 777 logs
+
+    - name: Run PHPStan
+      run: composer run phpstan
+
+    - name: Run PHPCS
+      run: composer run phpcs
+
+    - name: Run PHPUnit tests
+      run: composer run test-coverage
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+    
+    - name: Security Audit
+      run: |
+        composer audit 2>/dev/null || echo "No composer.lock found or audit not supported"
+
+  build:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: |
+        docker build -t risk-management:latest .
+        docker tag risk-management:latest risk-management:${{ github.sha }}
+    
+    - name: Test Docker image
+      run: |
+        docker run -d --name test-container -p 8080:80 risk-management:latest
+        sleep 10
+        curl -f http://localhost:8080 || exit 1
+        docker stop test-container
+        docker rm test-container

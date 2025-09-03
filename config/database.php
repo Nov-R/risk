@@ -12,11 +12,15 @@
  * - options: PDO连接选项
  */
 
+use App\Core\Config\Environment;
+
+$env = Environment::getInstance();
+
 return [
-    'host' => 'localhost',
-    'database' => 'risk_management',
-    'username' => 'root',
-    'password' => '',
+    'host' => $env->get('DB_HOST', 'localhost'),
+    'database' => $env->get('DB_DATABASE', 'risk_management'),
+    'username' => $env->get('DB_USERNAME', 'root'),
+    'password' => $env->get('DB_PASSWORD', ''),
     'charset' => 'utf8mb4',
     'options' => [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

@@ -4,11 +4,12 @@
  * 
  * 处理所有传入的HTTP请求，包括：
  * 1. 自动加载类
- * 2. 错误处理配置
- * 3. 日志初始化
- * 4. 请求限制中间件
- * 5. 路由处理
- * 6. 控制器初始化和调用
+ * 2. 环境配置初始化
+ * 3. 错误处理配置
+ * 4. 日志初始化
+ * 5. 请求限制中间件
+ * 6. 路由处理
+ * 7. 控制器初始化和调用
  */
 
 // 配置自动加载器
@@ -29,12 +30,16 @@ spl_autoload_register(function ($class) {
     }
 });
 
+// 初始化环境配置
+$env = \App\Core\Config\Environment::getInstance();
+
 // 配置错误处理
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', $env->isDebug() ? '1' : '0');
 
 // 初始化日志系统
-\App\Core\Utils\Logger::init(__DIR__ . '/../logs/app.log');
+$logPath = dirname(__DIR__) . '/' . $env->get('LOG_PATH', 'logs/app.log');
+\App\Core\Utils\Logger::init($logPath);
 
 // 初始化依赖注入容器
 $container = \App\Core\Container::getInstance();

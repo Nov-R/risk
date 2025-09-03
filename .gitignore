@@ -1,4 +1,42 @@
+# 日志文件
 /logs/*
 !.gitkeep
+
+# Composer 依赖
 /vendor/
+
+# 环境配置文件
 /.env
+
+# IDE 文件
+/.vscode/
+/.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 测试和覆盖率报告
+/coverage/
+.phpunit.cache/
+/coverage.xml
+/junit.xml
+
+# 缓存文件
+*.cache
+/cache/
+
+# 构建产物
+/build/
+/dist/
+
+# Docker 卷
+/mysql_data/
+
+# 临时文件
+/tmp/
+*.tmp
+*.bak

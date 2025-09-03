@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风险管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .api-endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+        
+        .method.get { background: #28a745; color: white; }
+        .method.post { background: #007bff; color: white; }
+        .method.put { background: #ffc107; color: black; }
+        .method.delete { background: #dc3545; color: white; }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .feature {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .feature .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .tech-item {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ 风险管理系统</h1>
+            <p>现代化 PHP 风险管理平台 - 模块化架构，完整测试覆盖</p>
+            <div style="margin-top: 1rem;">
+                <span class="status-badge status-online">系统运行正常</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🚀 系统特性</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="icon">🔍</div>
+                    <h3>风险管理</h3>
+                    <p>全生命周期风险跟踪与评估</p>
+                </div>
+                <div class="feature">
+                    <div class="icon">💬</div>
+                    <h3>反馈系统</h3>
+                    <p>实时反馈收集与处理机制</p>
+                </div>
+                <div class="feature">
+                    <div class="icon">🔄</div>
+                    <h3>审核流程</h3>
+                    <p>多节点审批与状态管理</p>
+                </div>
+                <div class="feature">
+                    <div class="icon">⚡</div>
+                    <h3>API 限流</h3>
+                    <p>智能请求限制与保护</p>
+                </div>
+                <div class="feature">
+                    <div class="icon">🧪</div>
+                    <h3>测试覆盖</h3>
+                    <p>完整的单元与集成测试</p>
+                </div>
+                <div class="feature">
+                    <div class="icon">🐳</div>
+                    <h3>容器化</h3>
+                    <p>Docker 支持快速部署</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-grid">
+            <div class="card">
+                <h2>🔍 风险管理 API</h2>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <strong>/api/risks</strong>
+                    <p>获取所有风险列表</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    <strong>/api/risks</strong>
+                    <p>创建新的风险记录</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <strong>/api/risks/{id}</strong>
+                    <p>获取指定风险详情</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method put">PUT</span>
+                    <strong>/api/risks/{id}</strong>
+                    <p>更新风险信息</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method delete">DELETE</span>
+                    <strong>/api/risks/{id}</strong>
+                    <p>删除风险记录</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>💬 反馈管理 API</h2>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    <strong>/api/feedbacks</strong>
+                    <p>创建反馈记录</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <strong>/api/feedbacks/{id}</strong>
+                    <p>获取反馈详情</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <strong>/api/risks/{riskId}/feedbacks</strong>
+                    <p>获取风险相关反馈</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <strong>/api/feedbacks/status/{status}</strong>
+                    <p>按状态查询反馈</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔄 节点审核 API</h2>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    <strong>/api/nodes</strong>
+                    <p>创建审核节点</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    <strong>/api/nodes/{id}/approve</strong>
+                    <p>审批通过节点</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method post">POST</span>
+                    <strong>/api/nodes/{id}/reject</strong>
+                    <p>拒绝审核节点</p>
+                </div>
+                <div class="api-endpoint">
+                    <span class="method get">GET</span>
+                    <strong>/api/nodes/pending/{type}</strong>
+                    <p>获取待处理节点</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🛠️ 技术栈</h2>
+            <div class="tech-stack">
+                <span class="tech-item">PHP 8.1+</span>
+                <span class="tech-item">MySQL 8.0</span>
+                <span class="tech-item">Redis</span>
+                <span class="tech-item">Docker</span>
+                <span class="tech-item">PHPUnit</span>
+                <span class="tech-item">PHPStan</span>
+                <span class="tech-item">GitHub Actions</span>
+                <span class="tech-item">OpenAPI</span>
+                <span class="tech-item">Composer</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <h3>📚 快速开始</h3>
+            <p>1. 克隆项目: <code>git clone https://github.com/Nov-R/risk.git</code></p>
+            <p>2. 启动服务: <code>docker-compose up -d</code></p>
+            <p>3. 访问 API: <code>http://localhost:8080/api/risks</code></p>
+            <br>
+            <p><strong>API 文档</strong>: <a href="docs/api/openapi.yml">OpenAPI 规范</a></p>
+            <p><strong>项目地址</strong>: <a href="https://github.com/Nov-R/risk">GitHub</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,351 @@
+openapi: 3.0.3
+info:
+  title: 风险管理系统 API
+  description: |
+    PHP 风险管理系统的 RESTful API 文档
+    
+    本系统提供完整的风险管理功能，包括：
+    - 风险全生命周期管理
+    - 反馈收集与处理
+    - 节点审核流程
+    
+    ## 认证方式
+    目前系统未实现认证机制，所有API端点均可直接访问。
+    
+    ## 响应格式
+    所有API响应均使用JSON格式，包含以下字段：
+    - `success`: 布尔值，表示请求是否成功
+    - `data`: 响应数据（成功时）
+    - `message`: 错误信息（失败时）
+    - `code`: HTTP状态码
+    
+  version: 1.0.0
+  contact:
+    name: 风险管理系统
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api
+    description: 本地开发环境
+  - url: https://api.risk-management.example.com/api
+    description: 生产环境
+
+paths:
+  /risks:
+    get:
+      summary: 获取所有风险
+      description: 返回系统中所有风险记录的列表
+      tags:
+        - 风险管理
+      responses:
+        '200':
+          description: 成功返回风险列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Risk'
+                  
+    post:
+      summary: 创建新风险
+      description: 创建一个新的风险记录
+      tags:
+        - 风险管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskInput'
+      responses:
+        '201':
+          description: 风险创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Risk'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /risks/{id}:
+    get:
+      summary: 获取指定风险
+      description: 根据风险ID获取具体的风险详情
+      tags:
+        - 风险管理
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 风险ID
+      responses:
+        '200':
+          description: 成功返回风险详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Risk'
+        '404':
+          description: 风险不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: 更新风险
+      description: 更新指定ID的风险记录
+      tags:
+        - 风险管理
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 风险ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskInput'
+      responses:
+        '200':
+          description: 风险更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Risk'
+        '404':
+          description: 风险不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: 删除风险
+      description: 删除指定ID的风险记录
+      tags:
+        - 风险管理
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 风险ID
+      responses:
+        '200':
+          description: 风险删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "风险删除成功"
+        '404':
+          description: 风险不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /risks/high:
+    get:
+      summary: 获取高风险项
+      description: 返回系统中所有高风险等级的风险记录
+      tags:
+        - 风险管理
+      responses:
+        '200':
+          description: 成功返回高风险列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Risk'
+
+  /risks/status/{status}:
+    get:
+      summary: 按状态获取风险
+      description: 根据风险状态获取风险列表
+      tags:
+        - 风险管理
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [identified, analyzing, mitigating, monitoring, closed]
+          description: 风险状态
+      responses:
+        '200':
+          description: 成功返回指定状态的风险列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Risk'
+
+components:
+  schemas:
+    Risk:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "数据安全风险"
+        description:
+          type: string
+          example: "客户数据可能泄露的安全风险"
+        probability:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 3
+        impact:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        status:
+          type: string
+          enum: [identified, analyzing, mitigating, monitoring, closed]
+          example: "analyzing"
+        mitigation:
+          type: string
+          nullable: true
+          example: "加强数据加密和访问控制"
+        contingency:
+          type: string
+          nullable: true
+          example: "制定数据泄露应急响应计划"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T10:00:00Z"
+    
+    RiskInput:
+      type: object
+      required:
+        - name
+        - description
+        - probability
+        - impact
+        - status
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "数据安全风险"
+        description:
+          type: string
+          minLength: 1
+          example: "客户数据可能泄露的安全风险"
+        probability:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 3
+        impact:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        status:
+          type: string
+          enum: [identified, analyzing, mitigating, monitoring, closed]
+          example: "analyzing"
+        mitigation:
+          type: string
+          nullable: true
+          example: "加强数据加密和访问控制"
+        contingency:
+          type: string
+          nullable: true
+          example: "制定数据泄露应急响应计划"
+    
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "请求参数错误"
+        code:
+          type: integer
+          example: 400
+
+tags:
+  - name: 风险管理
+    description: 风险相关的所有操作
+  - name: 反馈管理
+    description: 反馈相关的所有操作
+  - name: 节点管理
+    description: 审核节点相关的所有操作
