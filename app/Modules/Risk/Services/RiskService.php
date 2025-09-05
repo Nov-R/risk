@@ -93,7 +93,7 @@ class RiskService {
             }
 
             // 只校验传入的字段，不要求所有字段必填
-            $this->validator->validatePartialUpdate($data);
+            $this->validator->validate($data);
             $result = $this->repository->updateRisk($id, $data);
             
             Logger::info('风险更新成功', ['id' => $id]);

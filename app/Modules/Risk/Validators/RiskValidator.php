@@ -26,7 +26,7 @@ class RiskValidator {
     private const ALLOWED_STATUSES = ['identified', 'analyzing', 'mitigating', 'monitoring', 'closed'];
     
     /**
-     * 验证风险数据
+     * 验证风险数据（自适应所有字段）
      * 
      * @param array $data 要验证的风险数据
      * @throws ValidationException 当验证失败时
@@ -34,63 +34,8 @@ class RiskValidator {
     public function validate(array $data): void {
         $errors = [];
 
-        // Required fields
-        if (empty($data['name'])) {
-            $errors['name'] = '风险名称不能为空';
-        } elseif (strlen($data['name']) > 255) {
-            $errors['name'] = '风险名称不能超过255个字符';
-        }
-
-        if (empty($data['description'])) {
-            $errors['description'] = '风险描述不能为空';
-        }
-
-        // Probability validation
-        if (!isset($data['probability'])) {
-            $errors['probability'] = '发生概率不能为空';
-        } elseif (!is_numeric($data['probability']) || $data['probability'] < 1 || $data['probability'] > 5) {
-            $errors['probability'] = '发生概率必须在1到5之间';
-        }
-
-        // Impact validation
-        if (!isset($data['impact'])) {
-            $errors['impact'] = '影响程度不能为空';
-        } elseif (!is_numeric($data['impact']) || $data['impact'] < 1 || $data['impact'] > 5) {
-            $errors['impact'] = '影响程度必须在1到5之间';
-        }
-
-        // Status validation
-        if (empty($data['status'])) {
-            $errors['status'] = '风险状态不能为空';
-        } elseif (!in_array($data['status'], self::ALLOWED_STATUSES)) {
-            $errors['status'] = '无效的风险状态值';
-        }
-
-        // Optional fields validation
-        if (isset($data['mitigation']) && !is_string($data['mitigation'])) {
-            $errors['mitigation'] = '缓解措施必须是字符串类型';
-        }
-
-        if (isset($data['contingency']) && !is_string($data['contingency'])) {
-            $errors['contingency'] = '应急计划必须是字符串类型';
-        }
-
-        if (!empty($errors)) {
-            throw new ValidationException($errors);
-        }
-    }
-
-    /**
-     * 验证部分更新的风险数据
-     * 
-     * @param array $data 要验证的风险数据（只包含需要更新的字段）
-     * @throws ValidationException 当验证失败时
-     */
-    public function validatePartialUpdate(array $data): void {
-        $errors = [];
-
-        // Name validation (if provided)
-        if (isset($data['name'])) {
+        // Name validation
+        if (array_key_exists('name', $data)) {
             if (empty($data['name'])) {
                 $errors['name'] = '风险名称不能为空';
             } elseif (strlen($data['name']) > 255) {
@@ -98,27 +43,29 @@ class RiskValidator {
             }
         }
 
-        // Description validation (if provided)
-        if (isset($data['description']) && empty($data['description'])) {
-            $errors['description'] = '风险描述不能为空';
+        // Description validation
+        if (array_key_exists('description', $data)) {
+            if (empty($data['description'])) {
+                $errors['description'] = '风险描述不能为空';
+            }
         }
 
-        // Probability validation (if provided)
-        if (isset($data['probability'])) {
+        // Probability validation
+        if (array_key_exists('probability', $data)) {
             if (!is_numeric($data['probability']) || $data['probability'] < 1 || $data['probability'] > 5) {
                 $errors['probability'] = '发生概率必须在1到5之间';
             }
         }
 
-        // Impact validation (if provided)
-        if (isset($data['impact'])) {
+        // Impact validation
+        if (array_key_exists('impact', $data)) {
             if (!is_numeric($data['impact']) || $data['impact'] < 1 || $data['impact'] > 5) {
                 $errors['impact'] = '影响程度必须在1到5之间';
             }
         }
 
-        // Status validation (if provided)
-        if (isset($data['status'])) {
+        // Status validation
+        if (array_key_exists('status', $data)) {
             if (empty($data['status'])) {
                 $errors['status'] = '风险状态不能为空';
             } elseif (!in_array($data['status'], self::ALLOWED_STATUSES)) {
@@ -126,12 +73,13 @@ class RiskValidator {
             }
         }
 
-        // Optional fields validation
-        if (isset($data['mitigation']) && !is_string($data['mitigation'])) {
+        // Mitigation validation
+        if (array_key_exists('mitigation', $data) && $data['mitigation'] !== null && !is_string($data['mitigation'])) {
             $errors['mitigation'] = '缓解措施必须是字符串类型';
         }
 
-        if (isset($data['contingency']) && !is_string($data['contingency'])) {
+        // Contingency validation
+        if (array_key_exists('contingency', $data) && $data['contingency'] !== null && !is_string($data['contingency'])) {
             $errors['contingency'] = '应急计划必须是字符串类型';
         }
 

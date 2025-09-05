@@ -33,7 +33,7 @@ class NodeValidator {
     private const ALLOWED_STATUSES = ['pending', 'approved', 'rejected'];
     
     /**
-     * 验证节点数据
+     * 验证节点数据（自适应所有字段）
      * 
      * @param array $data 要验证的节点数据
      * @throws ValidationException 当验证失败时
@@ -41,63 +41,8 @@ class NodeValidator {
     public function validate(array $data): void {
         $errors = [];
 
-        // Validate type
-        if (empty($data['type'])) {
-            $errors['type'] = '节点类型不能为空';
-        } elseif (!in_array($data['type'], self::ALLOWED_TYPES)) {
-            $errors['type'] = '无效的节点类型';
-        }
-
-        // 验证审核人
-        if (empty($data['reviewer'])) {
-            $errors['reviewer'] = '审核人不能为空';
-        } elseif (strlen($data['reviewer']) > 255) {
-            $errors['reviewer'] = '审核人名称不能超过255个字符';
-        }
-
-        // 基于节点类型验证关联ID
-        if (isset($data['type'])) {
-            if ($data['type'] === 'risk_review') {
-                if (empty($data['risk_id'])) {
-                    $errors['risk_id'] = '风险审核节点必须提供风险ID';
-                } elseif (isset($data['feedback_id'])) {
-                    $errors['feedback_id'] = '风险审核节点不应设置反馈ID';
-                }
-            } elseif ($data['type'] === 'feedback_review') {
-                if (empty($data['feedback_id'])) {
-                    $errors['feedback_id'] = '反馈审核节点必须提供反馈ID';
-                } elseif (isset($data['risk_id'])) {
-                    $errors['risk_id'] = '反馈审核节点不应设置风险ID';
-                }
-            }
-        }
-
-        // 验证状态（如果提供）
-        if (isset($data['status']) && !in_array($data['status'], self::ALLOWED_STATUSES)) {
-            $errors['status'] = '无效的状态值';
-        }
-
-        // 验证备注（如果提供）
-        if (isset($data['comments']) && !is_string($data['comments'])) {
-            $errors['comments'] = '备注必须是字符串类型';
-        }
-
-        if (!empty($errors)) {
-            throw new ValidationException($errors);
-        }
-    }
-
-    /**
-     * 验证部分更新数据
-     * 
-     * @param array $data 要验证的部分更新数据
-     * @throws ValidationException 当验证失败时
-     */
-    public function validatePartialUpdate(array $data): void {
-        $errors = [];
-
-        // 验证类型（如果提供）
-        if (isset($data['type'])) {
+        // Type validation
+        if (array_key_exists('type', $data)) {
             if (empty($data['type'])) {
                 $errors['type'] = '节点类型不能为空';
             } elseif (!in_array($data['type'], self::ALLOWED_TYPES)) {
@@ -105,8 +50,8 @@ class NodeValidator {
             }
         }
 
-        // 验证审核人（如果提供）
-        if (isset($data['reviewer'])) {
+        // Reviewer validation
+        if (array_key_exists('reviewer', $data)) {
             if (empty($data['reviewer'])) {
                 $errors['reviewer'] = '审核人不能为空';
             } elseif (strlen($data['reviewer']) > 255) {
@@ -114,19 +59,55 @@ class NodeValidator {
             }
         }
 
-        // 验证状态（如果提供）
-        if (isset($data['status']) && !in_array($data['status'], self::ALLOWED_STATUSES)) {
-            $errors['status'] = '无效的状态值';
+        // Risk ID validation
+        if (array_key_exists('risk_id', $data) && $data['risk_id'] !== null) {
+            if (!is_numeric($data['risk_id']) || $data['risk_id'] < 1) {
+                $errors['risk_id'] = '无效的风险ID';
+            }
         }
 
-        // 验证备注（如果提供）
-        if (isset($data['comments']) && !is_string($data['comments'])) {
-            $errors['comments'] = '备注必须是字符串类型';
+        // Feedback ID validation
+        if (array_key_exists('feedback_id', $data) && $data['feedback_id'] !== null) {
+            if (!is_numeric($data['feedback_id']) || $data['feedback_id'] < 1) {
+                $errors['feedback_id'] = '无效的反馈ID';
+            }
         }
 
-        // 验证关联ID（如果提供）
-        if (isset($data['risk_id']) && isset($data['feedback_id'])) {
+        // ID conflict validation
+        if (array_key_exists('risk_id', $data) && array_key_exists('feedback_id', $data) 
+            && $data['risk_id'] !== null && $data['feedback_id'] !== null) {
             $errors['id_conflict'] = '不能同时设置风险ID和反馈ID';
+        }
+
+        // Type-specific validation
+        if (array_key_exists('type', $data) && !empty($data['type'])) {
+            if ($data['type'] === 'risk_review') {
+                if (array_key_exists('risk_id', $data) && empty($data['risk_id'])) {
+                    $errors['risk_id'] = '风险审核节点必须提供风险ID';
+                }
+                if (array_key_exists('feedback_id', $data) && $data['feedback_id'] !== null) {
+                    $errors['feedback_id'] = '风险审核节点不应设置反馈ID';
+                }
+            } elseif ($data['type'] === 'feedback_review') {
+                if (array_key_exists('feedback_id', $data) && empty($data['feedback_id'])) {
+                    $errors['feedback_id'] = '反馈审核节点必须提供反馈ID';
+                }
+                if (array_key_exists('risk_id', $data) && $data['risk_id'] !== null) {
+                    $errors['risk_id'] = '反馈审核节点不应设置风险ID';
+                }
+            }
+        }
+
+        // Status validation
+        if (array_key_exists('status', $data)) {
+            if (!in_array($data['status'], self::ALLOWED_STATUSES)) {
+                $errors['status'] = '无效的状态值';
+            }
+        }
+
+        // Comments validation
+        if (array_key_exists('comments', $data) && $data['comments'] !== null && !is_string($data['comments'])) {
+            $errors['comments'] = '备注必须是字符串类型';
         }
 
         if (!empty($errors)) {

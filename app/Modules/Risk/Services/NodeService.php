@@ -112,7 +112,7 @@ class NodeService {
             ], $data);
 
             // 只校验传入的字段，不要求所有字段必填
-            $this->validator->validatePartialUpdate($data);
+            $this->validator->validate($data);
             $result = $this->repository->updateNode($id, $data);
             
             Logger::info('节点更新成功', ['id' => $id]);
