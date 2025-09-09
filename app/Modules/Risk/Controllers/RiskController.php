@@ -2,6 +2,7 @@
 
 namespace App\Modules\Risk\Controllers;
 
+use App\Core\Http\BaseController;
 use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Modules\Risk\Services\RiskService;
@@ -20,21 +21,19 @@ use App\Core\Utils\Logger;
  * - 按状态查询风险
  * - 获取高风险项目
  */
-class RiskController {
+class RiskController extends BaseController {
     /** @var RiskService 风险服务实例 */
     private RiskService $service;
-    
-    /** @var Request HTTP请求处理实例 */
-    private Request $request;
 
     /**
      * 构造函数
      * 
+     * @param Request $request HTTP请求实例
      * @param RiskService $service 风险服务实例
      */
-    public function __construct(RiskService $service) {
+    public function __construct(Request $request, RiskService $service) {
+        parent::__construct($request);
         $this->service = $service;
-        $this->request = new Request();
     }
 
     /**
@@ -51,7 +50,7 @@ class RiskController {
      */
     public function create(): void {
         try {
-            $data = $this->request->getBodyParam();
+            $data = $this->getBodyParam();
             $riskId = $this->service->createRisk($data);
             Response::success(['id' => $riskId], '风险创建成功');
         } catch (ValidationException $e) {
@@ -73,12 +72,11 @@ class RiskController {
      * - status: 风险状态
      * - mitigation: 缓解措施
      * - contingency: 应急计划
-     * 
-     * @param int $id 风险记录ID
      */
-    public function update(int $id): void {
+    public function update(): void {
         try {
-            $data = $this->request->getBodyParam();
+            $id = (int)$this->getParam('id');
+            $data = $this->getBodyParam();
             $this->service->updateRisk($id, $data);
             Response::success(null, '风险更新成功');
         } catch (ValidationException $e) {
@@ -86,7 +84,7 @@ class RiskController {
         } catch (\RuntimeException $e) {
             Response::error($e->getMessage(), 404);
         } catch (\Exception $e) {
-            Logger::error('风险更新失败', ['id' => $id, 'error' => $e->getMessage()]);
+            Logger::error('风险更新失败', ['id' => $id ?? 'unknown', 'error' => $e->getMessage()]);
             Response::error('更新风险失败', 500);
         }
     }
@@ -97,17 +95,16 @@ class RiskController {
      * 接收DELETE请求，删除指定ID的风险记录。
      * 如果该风险已经与其他实体（如反馈或节点）关联，
      * 需要先解除这些关联才能删除。
-     * 
-     * @param int $id 要删除的风险记录ID
      */
-    public function delete(int $id): void {
+    public function delete(): void {
         try {
+            $id = (int)$this->getParam('id');
             $this->service->deleteRisk($id);
             Response::success(null, '风险删除成功');
         } catch (\RuntimeException $e) {
             Response::error($e->getMessage(), 404);
         } catch (\Exception $e) {
-            Logger::error('风险删除失败', ['id' => $id, 'error' => $e->getMessage()]);
+            Logger::error('风险删除失败', ['id' => $id ?? 'unknown', 'error' => $e->getMessage()]);
             Response::error('删除风险失败', 500);
         }
     }
@@ -117,11 +114,10 @@ class RiskController {
      * 
      * 接收GET请求，返回指定ID的风险记录的详细信息，
      * 包括基本信息、风险评分、时间戳等。
-     * 
-     * @param int $id 要查询的风险记录ID
      */
-    public function get(int $id): void {
+    public function get(): void {
         try {
+            $id = (int)$this->getParam('id');
             $risk = $this->service->getRisk($id);
             if (!$risk) {
                 Response::error('未找到指定风险', 404);
@@ -129,7 +125,7 @@ class RiskController {
             }
             Response::success($risk);
         } catch (\Exception $e) {
-            Logger::error('风险获取失败', ['id' => $id, 'error' => $e->getMessage()]);
+            Logger::error('风险获取失败', ['id' => $id ?? 'unknown', 'error' => $e->getMessage()]);
             Response::error('获取风险信息失败', 500);
         }
     }
@@ -160,15 +156,14 @@ class RiskController {
      * - mitigated: 已缓解
      * - closed: 已关闭
      * - monitoring: 监控中
-     * 
-     * @param string $status 风险状态
      */
-    public function getByStatus(string $status): void {
+    public function getByStatus(): void {
         try {
+            $status = $this->getParam('status');
             $risks = $this->service->getRisksByStatus($status);
             Response::success($risks);
         } catch (\Exception $e) {
-            Logger::error('按状态获取风险列表失败', ['status' => $status, 'error' => $e->getMessage()]);
+            Logger::error('按状态获取风险列表失败', ['status' => $status ?? 'unknown', 'error' => $e->getMessage()]);
             Response::error('按状态获取风险列表失败', 500);
         }
     }
@@ -185,7 +180,7 @@ class RiskController {
      */
     public function getHighRisks(): void {
         try {
-            $threshold = (int)$this->request->getQuery('threshold', 15);
+            $threshold = (int)$this->getQuery('threshold', 15);
             $risks = $this->service->getHighRisks($threshold);
             Response::success($risks);
         } catch (\Exception $e) {
