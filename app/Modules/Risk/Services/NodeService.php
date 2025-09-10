@@ -60,7 +60,7 @@ class NodeService {
 
             $this->validator->validate($data);
             $node = Node::fromArray($data);
-            $nodeId = $this->repository->createNode($node);
+            $nodeId = $this->repository->createNodeFromEntity($node);
             
             Logger::info('节点创建成功', ['id' => $nodeId, 'type' => $data['type']]);
             return $nodeId;
@@ -89,13 +89,13 @@ class NodeService {
             }
 
             // Prevent changing immutable properties
-            if (isset($data['type']) && $data['type'] !== $node->getType()) {
+            if (isset($data['type']) && $data['type'] !== $node['type']) {
                 throw new \RuntimeException('不能更改节点类型');
             }
-            if (isset($data['risk_id']) && $data['risk_id'] !== $node->getRiskId()) {
+            if (isset($data['risk_id']) && $data['risk_id'] !== $node['risk_id']) {
                 throw new \RuntimeException('不能更改关联的风险');
             }
-            if (isset($data['feedback_id']) && $data['feedback_id'] !== $node->getFeedbackId()) {
+            if (isset($data['feedback_id']) && $data['feedback_id'] !== $node['feedback_id']) {
                 throw new \RuntimeException('不能更改关联的反馈');
             }
 
@@ -106,9 +106,9 @@ class NodeService {
 
             // Merge existing immutable data with update data
             $mergedData = array_merge([
-                'type' => $node->getType(),
-                'risk_id' => $node->getRiskId(),
-                'feedback_id' => $node->getFeedbackId(),
+                'type' => $node['type'],
+                'risk_id' => $node['risk_id'],
+                'feedback_id' => $node['feedback_id'],
             ], $data);
 
             // 只校验传入的字段，不要求所有字段必填
@@ -153,12 +153,25 @@ class NodeService {
      */
     public function getNode(int $id): ?array {
         try {
-            $node = $this->repository->findNodeById($id);
-            if (!$node) {
+            $nodeData = $this->repository->findNodeById($id);
+            if (!$nodeData) {
                 return null;
             }
 
-            return $node->toArray();
+            // 将数组包装成实体对象进行业务逻辑处理
+            $node = Node::fromArray($nodeData);
+            
+            // 利用实体的业务方法进行状态判断和数据增强
+            $nodeArray = $node->toArray();
+            $nodeArray['is_pending'] = $node->isPending();
+            $nodeArray['is_approved'] = $node->isApproved();
+            $nodeArray['is_rejected'] = $node->isRejected();
+            $nodeArray['is_risk_review'] = $node->isRiskReview();
+            $nodeArray['is_feedback_review'] = $node->isFeedbackReview();
+            $nodeArray['can_review'] = $node->isPending(); // 只有待处理的才能审核
+            
+            // 最终返回增强后的数组给Controller
+            return $nodeArray;
         } catch (\Exception $e) {
             Logger::error('节点获取失败', ['id' => $id, 'error' => $e->getMessage()]);
             throw $e;
@@ -178,8 +191,25 @@ class NodeService {
                 throw new \RuntimeException('未找到指定风险');
             }
 
-            $nodes = $this->repository->findNodesByRiskId($riskId);
-            return array_map(fn($node) => $node->toArray(), $nodes);
+            $nodesData = $this->repository->findNodesByRiskId($riskId);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $nodes = array_map(function($nodeData) {
+                $node = Node::fromArray($nodeData);
+                
+                // 利用实体的业务方法进行数据增强
+                $nodeArray = $node->toArray();
+                $nodeArray['is_pending'] = $node->isPending();
+                $nodeArray['is_approved'] = $node->isApproved();
+                $nodeArray['is_rejected'] = $node->isRejected();
+                $nodeArray['is_risk_review'] = $node->isRiskReview();
+                $nodeArray['is_feedback_review'] = $node->isFeedbackReview();
+                $nodeArray['can_review'] = $node->isPending();
+                
+                return $nodeArray;
+            }, $nodesData);
+            
+            return $nodes;
         } catch (\Exception $e) {
             Logger::error('获取风险关联节点失败', ['risk_id' => $riskId, 'error' => $e->getMessage()]);
             throw $e;
@@ -199,8 +229,25 @@ class NodeService {
                 throw new \RuntimeException('未找到指定反馈');
             }
 
-            $nodes = $this->repository->findNodesByFeedbackId($feedbackId);
-            return array_map(fn($node) => $node->toArray(), $nodes);
+            $nodesData = $this->repository->findNodesByFeedbackId($feedbackId);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $nodes = array_map(function($nodeData) {
+                $node = Node::fromArray($nodeData);
+                
+                // 利用实体的业务方法进行数据增强
+                $nodeArray = $node->toArray();
+                $nodeArray['is_pending'] = $node->isPending();
+                $nodeArray['is_approved'] = $node->isApproved();
+                $nodeArray['is_rejected'] = $node->isRejected();
+                $nodeArray['is_risk_review'] = $node->isRiskReview();
+                $nodeArray['is_feedback_review'] = $node->isFeedbackReview();
+                $nodeArray['can_review'] = $node->isPending();
+                
+                return $nodeArray;
+            }, $nodesData);
+            
+            return $nodes;
         } catch (\Exception $e) {
             Logger::error('获取反馈关联节点失败', ['feedback_id' => $feedbackId, 'error' => $e->getMessage()]);
             throw $e;
@@ -215,8 +262,25 @@ class NodeService {
      */
     public function getPendingReviews(string $type): array {
         try {
-            $nodes = $this->repository->findPendingNodesByType($type);
-            return array_map(fn($node) => $node->toArray(), $nodes);
+            $nodesData = $this->repository->findPendingNodesByType($type);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $nodes = array_map(function($nodeData) {
+                $node = Node::fromArray($nodeData);
+                
+                // 利用实体的业务方法进行数据增强，特别针对待审核节点
+                $nodeArray = $node->toArray();
+                $nodeArray['is_pending'] = $node->isPending();
+                $nodeArray['is_approved'] = $node->isApproved();
+                $nodeArray['is_rejected'] = $node->isRejected();
+                $nodeArray['is_risk_review'] = $node->isRiskReview();
+                $nodeArray['is_feedback_review'] = $node->isFeedbackReview();
+                $nodeArray['can_review'] = $node->isPending();
+                
+                return $nodeArray;
+            }, $nodesData);
+            
+            return $nodes;
         } catch (\Exception $e) {
             Logger::error('获取待审查节点失败', ['type' => $type, 'error' => $e->getMessage()]);
             throw $e;
@@ -239,27 +303,27 @@ class NodeService {
                 throw new \RuntimeException('未找到指定节点');
             }
 
-            if (!$node->isPending()) {
+            if ($node['status'] !== 'pending') {
                 throw new \RuntimeException('节点不处于待处理状态');
             }
             
             // 检查审核人权限
-            if (!$this->hasReviewPermission($reviewerId, $node->getType())) {
+            if (!$this->hasReviewPermission($reviewerId, $node['type'])) {
                 throw new \RuntimeException('审核人没有权限审批此节点');
             }
 
             $data = [
-                'type' => $node->getType(),
+                'type' => $node['type'],
                 'reviewer' => $reviewerId,
                 'status' => 'approved',
-                'comments' => $comments ? htmlspecialchars(trim($comments), ENT_QUOTES, 'UTF-8') : $node->getComments()
+                'comments' => $comments ? htmlspecialchars(trim($comments), ENT_QUOTES, 'UTF-8') : ($node['comments'] ?? null)
             ];
 
-            if ($node->getRiskId()) {
-                $data['risk_id'] = $node->getRiskId();
+            if (!empty($node['risk_id'])) {
+                $data['risk_id'] = $node['risk_id'];
             }
-            if ($node->getFeedbackId()) {
-                $data['feedback_id'] = $node->getFeedbackId();
+            if (!empty($node['feedback_id'])) {
+                $data['feedback_id'] = $node['feedback_id'];
             }
 
             $result = $this->repository->updateNode($id, $data);
@@ -301,27 +365,27 @@ class NodeService {
                 throw new \RuntimeException('未找到指定节点');
             }
 
-            if (!$node->isPending()) {
+            if ($node['status'] !== 'pending') {
                 throw new \RuntimeException('节点不处于待处理状态');
             }
             
             // 检查审核人权限
-            if (!$this->hasReviewPermission($reviewerId, $node->getType())) {
+            if (!$this->hasReviewPermission($reviewerId, $node['type'])) {
                 throw new \RuntimeException('审核人没有权限拒绝此节点');
             }
 
             $data = [
-                'type' => $node->getType(),
+                'type' => $node['type'],
                 'reviewer' => $reviewerId,
                 'status' => 'rejected',
                 'comments' => htmlspecialchars(trim($comments), ENT_QUOTES, 'UTF-8')
             ];
 
-            if ($node->getRiskId()) {
-                $data['risk_id'] = $node->getRiskId();
+            if (!empty($node['risk_id'])) {
+                $data['risk_id'] = $node['risk_id'];
             }
-            if ($node->getFeedbackId()) {
-                $data['feedback_id'] = $node->getFeedbackId();
+            if (!empty($node['feedback_id'])) {
+                $data['feedback_id'] = $node['feedback_id'];
             }
 
             $result = $this->repository->updateNode($id, $data);

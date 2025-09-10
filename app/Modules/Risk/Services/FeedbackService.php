@@ -71,7 +71,7 @@ class FeedbackService {
             }
             $this->validator->validate($data);
             $feedback = Feedback::fromArray($data);
-            $feedbackId = $this->repository->createFeedback($feedback);
+            $feedbackId = $this->repository->createFeedbackFromEntity($feedback);
             Logger::info('反馈创建成功', ['id' => $feedbackId, 'risk_id' => $data['risk_id']]);
             return $feedbackId;
         } catch (ValidationException $e) {
@@ -97,7 +97,7 @@ class FeedbackService {
             if (!$feedback) {
                 throw new \RuntimeException('未找到反馈');
             }
-            if (isset($data['risk_id']) && $data['risk_id'] !== $feedback->getRiskId()) {
+            if (isset($data['risk_id']) && $data['risk_id'] !== $feedback['risk_id']) {
                 throw new \RuntimeException('不能更改关联的风险');
             }
             // 内容安全处理
@@ -145,11 +145,23 @@ class FeedbackService {
      */
     public function getFeedback(int $id): ?array {
         try {
-            $feedback = $this->repository->findFeedbackById($id);
-            if (!$feedback) {
+            $feedbackData = $this->repository->findFeedbackById($id);
+            if (!$feedbackData) {
                 return null;
             }
-            return $feedback->toArray();
+            
+            // 将数组包装成实体对象进行业务逻辑处理
+            $feedback = Feedback::fromArray($feedbackData);
+            
+            // 利用实体的业务方法进行状态判断和数据增强
+            $feedbackArray = $feedback->toArray();
+            $feedbackArray['is_pending'] = $feedback->isPending();
+            $feedbackArray['is_approved'] = $feedback->isApproved();
+            $feedbackArray['is_rejected'] = $feedback->isRejected();
+            $feedbackArray['can_approve'] = $feedback->isPending(); // 只有待处理的才能审核
+            
+            // 最终返回增强后的数组给Controller
+            return $feedbackArray;
         } catch (\Exception $e) {
             Logger::error('获取反馈失败', ['id' => $id, 'error' => $e->getMessage()]);
             throw $e;
@@ -168,8 +180,23 @@ class FeedbackService {
             if (!$this->riskRepository->findRiskById($riskId)) {
                 throw new \RuntimeException('未找到指定的风险');
             }
-            $feedbacks = $this->repository->findFeedbacksByRiskId($riskId);
-            return array_map(fn($feedback) => $feedback->toArray(), $feedbacks);
+            $feedbacksData = $this->repository->findFeedbacksByRiskId($riskId);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $feedbacks = array_map(function($feedbackData) {
+                $feedback = Feedback::fromArray($feedbackData);
+                
+                // 利用实体的业务方法进行数据增强
+                $feedbackArray = $feedback->toArray();
+                $feedbackArray['is_pending'] = $feedback->isPending();
+                $feedbackArray['is_approved'] = $feedback->isApproved();
+                $feedbackArray['is_rejected'] = $feedback->isRejected();
+                $feedbackArray['can_approve'] = $feedback->isPending();
+                
+                return $feedbackArray;
+            }, $feedbacksData);
+            
+            return $feedbacks;
         } catch (\Exception $e) {
             Logger::error('获取风险相关反馈失败', ['risk_id' => $riskId, 'error' => $e->getMessage()]);
             throw $e;
@@ -185,8 +212,23 @@ class FeedbackService {
      */
     public function getFeedbacksByStatus(string $status): array {
         try {
-            $feedbacks = $this->repository->findFeedbacksByStatus($status);
-            return array_map(fn($feedback) => $feedback->toArray(), $feedbacks);
+            $feedbacksData = $this->repository->findFeedbacksByStatus($status);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $feedbacks = array_map(function($feedbackData) {
+                $feedback = Feedback::fromArray($feedbackData);
+                
+                // 利用实体的业务方法进行状态判断和数据增强
+                $feedbackArray = $feedback->toArray();
+                $feedbackArray['is_pending'] = $feedback->isPending();
+                $feedbackArray['is_approved'] = $feedback->isApproved();
+                $feedbackArray['is_rejected'] = $feedback->isRejected();
+                $feedbackArray['can_approve'] = $feedback->isPending();
+                
+                return $feedbackArray;
+            }, $feedbacksData);
+            
+            return $feedbacks;
         } catch (\Exception $e) {
             Logger::error('按状态获取反馈失败', ['status' => $status, 'error' => $e->getMessage()]);
             throw $e;

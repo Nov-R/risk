@@ -2,6 +2,7 @@
 
 namespace App\Modules\Risk\Controllers;
 
+use App\Core\Http\BaseController;
 use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Modules\Risk\Services\FeedbackService;

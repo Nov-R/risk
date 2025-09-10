@@ -56,7 +56,7 @@ class RiskService {
         try {
             $this->validator->validate($data);
             $risk = Risk::fromArray($data);
-            $riskId = $this->repository->createRisk($risk);
+            $riskId = $this->repository->createRiskFromEntity($risk);
             
             Logger::info('风险创建成功', ['id' => $riskId]);
             return $riskId;
@@ -136,12 +136,22 @@ class RiskService {
      */
     public function getRisk(int $id): ?array {
         try {
-            $risk = $this->repository->findRiskById($id);
-            if (!$risk) {
+            $riskData = $this->repository->findRiskById($id);
+            if (!$riskData) {
                 return null;
             }
 
-            return $risk->toArray();
+            // 将数组包装成实体对象进行业务逻辑处理
+            $risk = Risk::fromArray($riskData);
+            
+            // 利用实体的业务方法进行数据增强
+            $riskArray = $risk->toArray();
+            $riskArray['risk_level'] = $risk->isHighRisk() ? 'high' : 'normal';
+            $riskArray['needs_immediate_action'] = $risk->requiresImmediateAction();
+            $riskArray['calculated_score'] = $risk->calculateRiskScore();
+            
+            // 最终返回增强后的数组给Controller
+            return $riskArray;
         } catch (\Exception $e) {
             Logger::error('风险获取失败', ['id' => $id, 'error' => $e->getMessage()]);
             throw $e;
@@ -156,8 +166,17 @@ class RiskService {
      */
     public function getAllRisks(): array {
         try {
-            $risks = $this->repository->findAllRisks();
-            return array_map(fn($risk) => $risk->toArray(), $risks);
+            $risksData = $this->repository->findAllRisks();
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $risks = array_map(function($riskData) {
+                $risk = Risk::fromArray($riskData);
+                // 在这里可以进行业务逻辑处理
+                // 例如：权限过滤、数据增强、状态计算等
+                return $risk->toArray();
+            }, $risksData);
+            
+            return $risks;
         } catch (\Exception $e) {
             Logger::error('风险列表获取失败', ['error' => $e->getMessage()]);
             throw $e;
@@ -177,8 +196,16 @@ class RiskService {
      */
     public function getRisksByStatus(string $status): array {
         try {
-            $risks = $this->repository->findRisksByStatus($status);
-            return array_map(fn($risk) => $risk->toArray(), $risks);
+            $risksData = $this->repository->findRisksByStatus($status);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $risks = array_map(function($riskData) {
+                $risk = Risk::fromArray($riskData);
+                // 可以在这里进行状态特定的业务逻辑处理
+                return $risk->toArray();
+            }, $risksData);
+            
+            return $risks;
         } catch (\Exception $e) {
             Logger::error('按状态获取风险列表失败', ['status' => $status, 'error' => $e->getMessage()]);
             throw $e;
@@ -201,8 +228,24 @@ class RiskService {
                 throw new \InvalidArgumentException('风险阈值必须在1到25之间');
             }
             
-            $risks = $this->repository->findHighRisks($threshold);
-            return array_map(fn($risk) => $risk->toArray(), $risks);
+            $risksData = $this->repository->findHighRisks($threshold);
+            
+            // 将数组数据包装成实体对象进行业务逻辑处理
+            $risks = array_map(function($riskData) {
+                $risk = Risk::fromArray($riskData);
+                
+                // 利用实体的业务方法进行处理
+                $riskArray = $risk->toArray();
+                
+                // 添加业务逻辑计算的字段
+                $riskArray['risk_level'] = $risk->isHighRisk() ? 'high' : 'normal';
+                $riskArray['needs_action'] = $risk->requiresImmediateAction();
+                $riskArray['calculated_score'] = $risk->calculateRiskScore();
+                
+                return $riskArray;
+            }, $risksData);
+            
+            return $risks;
         } catch (\Exception $e) {
             Logger::error('高风险列表获取失败', ['threshold' => $threshold, 'error' => $e->getMessage()]);
             throw $e;

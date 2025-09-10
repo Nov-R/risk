@@ -8,29 +8,94 @@ use Closure;
 use Exception;
 
 /**
- * 依赖注入容器
+ * 依赖注入容器类
  * 
- * 提供自动依赖注入和对象管理功能，替代框架的核心容器功能
+ * 这个类实现了一个轻量级的依赖注入容器，提供以下核心功能：
+ * - 类的自动依赖注入和解析
+ * - 单例模式的对象管理
+ * - 接口到具体实现的绑定
+ * - 构造函数参数的自动解析
+ * - 循环依赖检测和处理
+ * 
+ * 支持以下绑定方式：
+ * - 类名绑定：直接绑定类名
+ * - 闭包绑定：通过匿名函数创建实例
+ * - 实例绑定：直接绑定已创建的对象实例
+ * - 单例绑定：确保全局唯一实例
+ * 
+ * @author 风险管理系统开发组
+ * @version 1.0
+ * @since 2025-09-10
+ * 
+ * @example
+ * ```php
+ * $container = Container::getInstance();
+ * 
+ * // 绑定接口到具体实现
+ * $container->bind('LoggerInterface', 'FileLogger');
+ * 
+ * // 绑定单例
+ * $container->singleton('Database', function() {
+ *     return new Database($config);
+ * });
+ * 
+ * // 解析对象
+ * $logger = $container->make('LoggerInterface');
+ * ```
  */
 class Container
 {
     /**
-     * 已注册的绑定
+     * 已注册的绑定配置数组
+     * 
+     * 存储抽象名称到具体实现的映射关系，结构如下：
+     * [
+     *     '抽象名称' => [
+     *         'concrete' => '具体实现（类名、闭包或实例）',
+     *         'singleton' => '是否为单例模式（boolean）'
+     *     ]
+     * ]
+     * 
+     * @var array<string, array{concrete: mixed, singleton: bool}>
      */
     protected array $bindings = [];
     
     /**
-     * 单例实例
+     * 已实例化的单例对象存储数组
+     * 
+     * 缓存已创建的单例实例，避免重复创建：
+     * [
+     *     '抽象名称' => '实例对象'
+     * ]
+     * 
+     * @var array<string, object>
      */
     protected array $instances = [];
     
     /**
-     * 容器的单例实例
+     * 容器的全局单例实例
+     * 
+     * 确保整个应用程序中只有一个容器实例，
+     * 实现全局统一的依赖管理
+     * 
+     * @var Container|null
      */
     protected static ?Container $instance = null;
     
     /**
-     * 获取容器的单例实例
+     * 获取容器的全局单例实例
+     * 
+     * 使用单例模式确保整个应用程序中只有一个容器实例，
+     * 这样可以保证依赖注入的一致性和对象状态的统一管理。
+     * 
+     * @return Container 容器单例实例
+     * 
+     * @example
+     * ```php
+     * $container = Container::getInstance();
+     * $anotherRef = Container::getInstance();
+     * var_dump($container === $anotherRef); // 输出: true
+     * ```
      */
     public static function getInstance(): Container
     {
@@ -41,18 +106,46 @@ class Container
     }
     
     /**
-     * 绑定类或接口到具体实现
+     * 将抽象名称绑定到具体实现
      * 
-     * @param string $abstract 抽象类名或接口名
-     * @param mixed $concrete 具体实现（类名、闭包或实例）
-     * @param bool $singleton 是否为单例
+     * 这是容器最核心的方法，允许将接口、抽象类或任意标识符
+     * 绑定到具体的实现上。支持以下绑定类型：
+     * - 类名绑定：绑定到具体的类名
+     * - 闭包绑定：使用匿名函数创建实例
+     * - 实例绑定：直接绑定已存在的对象实例
+     * 
+     * @param string $abstract 抽象名称（接口名、类名或自定义标识符）
+     * @param mixed|null $concrete 具体实现，可以是：
+     *                             - null：使用 $abstract 作为具体实现
+     *                             - string：类名
+     *                             - Closure：工厂函数
+     *                             - object：具体实例
+     * @param bool $singleton 是否以单例模式管理实例
+     * 
+     * @return void
+     * 
+     * @example
+     * ```php
+     * // 绑定接口到实现类
+     * $container->bind('LoggerInterface', 'FileLogger');
+     * 
+     * // 使用闭包绑定
+     * $container->bind('database', function() {
+     *     return new PDO('mysql:host=localhost;dbname=test', $user, $pass);
+     * });
+     * 
+     * // 绑定为单例
+     * $container->bind('cache', 'RedisCache', true);
+     * ```
      */
     public function bind(string $abstract, $concrete = null, bool $singleton = false): void
     {
+        // 如果没有指定具体实现，则使用抽象名称本身
         if ($concrete === null) {
             $concrete = $abstract;
         }
         
+        // 存储绑定配置
         $this->bindings[$abstract] = [
             'concrete' => $concrete,
             'singleton' => $singleton
@@ -60,10 +153,27 @@ class Container
     }
     
     /**
-     * 注册单例
+     * 注册单例绑定
      * 
-     * @param string $abstract 抽象类名
-     * @param mixed $concrete 具体实现
+     * 这是 bind() 方法的便捷包装，专门用于注册单例。
+     * 单例对象在首次创建后会被缓存，后续请求将返回相同实例。
+     * 
+     * @param string $abstract 抽象名称
+     * @param mixed|null $concrete 具体实现（同 bind() 方法）
+     * 
+     * @return void
+     * 
+     * @example
+     * ```php
+     * // 注册数据库连接为单例
+     * $container->singleton('db', function() {
+     *     return new DatabaseConnection();
+     * });
+     * 
+     * $db1 = $container->make('db');
+     * $db2 = $container->make('db');
+     * var_dump($db1 === $db2); // 输出: true
+     * ```
      */
     public function singleton(string $abstract, $concrete = null): void
     {
