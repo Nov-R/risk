@@ -21,21 +21,19 @@ use App\Core\Utils\Logger;
  * - 审批或拒绝节点
  * - 查询待审核的节点
  */
-class NodeController {
+class NodeController extends BaseController {
     /** @var NodeService 节点服务实例 */
     private NodeService $service;
-    
-    /** @var Request HTTP请求处理实例 */
-    private Request $request;
 
     /**
      * 构造函数
      * 
+     * @param Request $request HTTP请求实例
      * @param NodeService $service 节点服务实例
      */
-    public function __construct(NodeService $service) {
+    public function __construct(Request $request, NodeService $service) {
+        parent::__construct($request);
         $this->service = $service;
-        $this->request = new Request();
     }
 
     /**
@@ -51,7 +49,7 @@ class NodeController {
     */
     public function create(): void {
         try {
-            $data = $this->request->getBodyParam();
+            $data = $this->getBodyParam();
             $nodeId = $this->service->createNode($data);
             Response::success(['id' => $nodeId], '节点创建成功');
         } catch (ValidationException $e) {
@@ -71,13 +69,11 @@ class NodeController {
      * - reviewer: 审核者ID
      * - comments: 节点备注
      * 注意：不能修改节点类型和关联的风险/反馈ID
-     * 
-    * @param int $id 节点记录ID
-    * @return void
      */
-    public function update(int $id): void {
+    public function update(): void {
         try {
-            $data = $this->request->getBodyParam();
+            $id = (int)$this->getParam('id');
+            $data = $this->getBodyParam();
             $this->service->updateNode($id, $data);
             Response::success(null, '节点更新成功');
         } catch (ValidationException $e) {
@@ -96,10 +92,10 @@ class NodeController {
      * 接收DELETE请求，删除指定ID的流程节点记录。
      * 只能删除状态为pending的节点，已审批或拒绝的节点不能删除。
      * 
-    * @param int $id 要删除的节点记录ID
-    * @return void
+     * @return void
      */
-    public function delete(int $id): void {
+    public function delete(): void {
+        $id = (int)$this->getParam('id');
         try {
             $this->service->deleteNode($id);
             Response::success(null, '节点删除成功');
@@ -117,10 +113,10 @@ class NodeController {
      * 接收GET请求，返回指定ID的流程节点记录的详细信息，
      * 包括节点类型、状态、关联实体、审核信息和时间戳等。
      * 
-    * @param int $id 要查询的节点记录ID
-    * @return void
+     * @return void
      */
-    public function get(int $id): void {
+    public function get(): void {
+        $id = (int)$this->getParam('id');
         try {
             $node = $this->service->getNode($id);
             if (!$node) {
@@ -140,10 +136,10 @@ class NodeController {
      * 接收GET请求，返回与指定风险ID关联的所有流程节点记录。
      * 结果包含所有状态的节点，按创建时间倒序排列。
      * 
-    * @param int $riskId 风险记录ID
-    * @return void
+     * @return void
      */
-    public function getByRisk(int $riskId): void {
+    public function getByRisk(): void {
+        $riskId = (int)$this->getParam('risk_id');
         try {
             $nodes = $this->service->getNodesByRisk($riskId);
             Response::success($nodes);
@@ -161,10 +157,10 @@ class NodeController {
      * 接收GET请求，返回与指定反馈ID关联的所有流程节点记录。
      * 结果包含所有状态的节点，按创建时间倒序排列。
      * 
-    * @param int $feedbackId 反馈记录ID
-    * @return void
+     * @return void
      */
-    public function getByFeedback(int $feedbackId): void {
+    public function getByFeedback(): void {
+        $feedbackId = (int)$this->getParam('feedback_id');
         try {
             $nodes = $this->service->getNodesByFeedback($feedbackId);
             Response::success($nodes);
@@ -184,12 +180,12 @@ class NodeController {
      * - reviewer: 审核者ID
      * - comments: 审批意见（可选）
      * 
-    * @param int $id 要审批的节点记录ID
-    * @return void
+     * @return void
      */
-    public function approve(int $id): void {
+    public function approve(): void {
+        $id = (int)$this->getParam('id');
         try {
-            $data = $this->request->getBodyParam();
+            $data = $this->getBodyParam();
             $comments = $data['comments'] ?? null;
             $reviewer = $data['reviewer'] ?? 'system';  // 默认审核者为system
             $this->service->approveNode($id, $reviewer, $comments);
@@ -210,12 +206,12 @@ class NodeController {
      * - reviewer: 审核者ID
      * - comments: 拒绝原因（必填）
      * 
-    * @param int $id 要拒绝的节点记录ID
-    * @return void
+     * @return void
      */
-    public function reject(int $id): void {
+    public function reject(): void {
+        $id = (int)$this->getParam('id');
         try {
-            $data = $this->request->getBodyParam();
+            $data = $this->getBodyParam();
             if (empty($data['comments'])) {
                 Response::validationError(['comments' => '拒绝时必须提供备注说明']);
                 return;
@@ -241,10 +237,10 @@ class NodeController {
      * - feedback_review: 反馈审核节点
      * 结果按创建时间排序，优先显示等待时间较长的节点。
      * 
-    * @param string $type 节点类型
-    * @return void
+     * @return void
      */
-    public function getPendingReviews(string $type): void {
+    public function getPendingReviews(): void {
+        $type = $this->getParam('type');
         try {
             $nodes = $this->service->getPendingReviews($type);
             Response::success($nodes);
