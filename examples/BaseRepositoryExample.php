@@ -120,10 +120,10 @@ class BaseRepositoryExample
             $updatedRisk = $this->riskRepository->findRiskById($riskId);
             echo "更新后状态: {$updatedRisk['status']}\n";
 
-            // 软删除风险
-            echo "软删除风险记录...\n";
-            $deleted = $this->riskRepository->deleteRisk($riskId, true);
-            echo $deleted ? "✓ 风险软删除成功\n" : "✗ 风险软删除失败\n";
+            // 删除风险
+            echo "删除风险记录...\n";
+            $deleted = $this->riskRepository->deleteRisk($riskId);
+            echo $deleted ? "✓ 风险删除成功\n" : "✗ 风险删除失败\n";
 
             echo "\n";
 
@@ -176,15 +176,26 @@ class BaseRepositoryExample
                 ]
             ];
 
-            $createdIds = $this->riskRepository->batchCreateRisks($riskDataList, 10);
-            echo "✓ 批量创建成功，创建了 " . count($createdIds) . " 条风险记录\n";
+            // 批量创建风险 (简化为逐个创建)
+            echo "创建多个风险记录...\n";
+            $createdIds = [];
+            foreach ($riskDataList as $riskData) {
+                $id = $this->riskRepository->createRisk($riskData);
+                $createdIds[] = $id;
+            }
+            echo "✓ 成功创建 " . count($createdIds) . " 条风险记录\n";
             echo "创建的ID: " . implode(', ', $createdIds) . "\n";
 
-            // 批量更新状态
+            // 批量更新状态 (简化为逐个更新)
             if (!empty($createdIds)) {
-                echo "批量更新风险状态...\n";
-                $affectedCount = $this->riskRepository->batchUpdateStatus($createdIds, 'reviewing');
-                echo "✓ 批量更新成功，影响了 {$affectedCount} 条记录\n";
+                echo "更新风险状态...\n";
+                $affectedCount = 0;
+                foreach ($createdIds as $id) {
+                    if ($this->riskRepository->updateRisk($id, ['status' => 'reviewing'])) {
+                        $affectedCount++;
+                    }
+                }
+                echo "✓ 更新成功，影响了 {$affectedCount} 条记录\n";
             }
 
             echo "\n";
@@ -213,28 +224,36 @@ class BaseRepositoryExample
 
             // 查询高风险项目
             echo "查询高风险项目...\n";
-            $highRisks = $this->riskRepository->findHighRisks(12);
-            echo "✓ 找到 " . count($highRisks) . " 个高风险项目(分数>=12)\n";
+            $highRisks = $this->riskRepository->findHighRisks();
+            echo "✓ 找到 " . count($highRisks) . " 个高风险项目\n";
 
-            // 按类别查询
+            // 按类别查询 (使用findBy方法代替)
             echo "按类别查询风险...\n";
-            $technicalRisks = $this->riskRepository->findRisksByCategory('technical');
+            $allRisks = $this->riskRepository->findAllRisks();
+            $technicalRisks = array_filter($allRisks, function($risk) {
+                return isset($risk['category']) && $risk['category'] === 'technical';
+            });
             echo "✓ 找到 " . count($technicalRisks) . " 个技术类风险\n";
 
-            // 查询即将到期的风险
-            echo "查询即将到期的风险...\n";
-            $dueSoonRisks = $this->riskRepository->findRisksDueSoon(30);
-            echo "✓ 找到 " . count($dueSoonRisks) . " 个30天内到期的风险\n";
+            // 查询即将到期的风险 (简化为查询所有风险)
+            echo "查询风险记录...\n";
+            $allRisks = $this->riskRepository->findAllRisks();
+            echo "✓ 找到 " . count($allRisks) . " 个风险记录\n";
 
             // 统计风险数量
             echo "统计风险总数...\n";
             $totalRisks = $this->riskRepository->countRisks();
             echo "✓ 当前风险总数: {$totalRisks}\n";
 
-            // 检查风险是否存在
-            echo "检查特定条件风险是否存在...\n";
-            $exists = $this->riskRepository->riskExists(['category' => 'security', 'status' => 'reviewing']);
-            echo $exists ? "✓ 存在安全类且状态为reviewing的风险\n" : "✗ 不存在符合条件的风险\n";
+            // 检查风险是否存在 (修改为检查ID是否存在)
+            echo "检查风险是否存在...\n";
+            if (!empty($createdIds)) {
+                $firstId = $createdIds[0];
+                $exists = $this->riskRepository->riskExists($firstId);
+                echo $exists ? "✓ 风险ID {$firstId} 存在\n" : "✗ 风险ID {$firstId} 不存在\n";
+            } else {
+                echo "✗ 没有可检查的风险ID\n";
+            }
 
             echo "\n";
 
@@ -257,9 +276,11 @@ class BaseRepositoryExample
         try {
             echo "执行事务操作...\n";
             
-            $result = $this->riskRepository->executeTransaction(function($repository) {
+            // 使用手动事务管理
+            $this->riskRepository->beginDatabaseTransaction();
+            try {
                 // 在事务中执行多个操作
-                $riskId1 = $repository->createRisk([
+                $riskId1 = $this->riskRepository->createRisk([
                     'title' => '事务测试风险1',
                     'description' => '用于测试事务功能',
                     'category' => 'test',
@@ -269,7 +290,7 @@ class BaseRepositoryExample
                     'owner' => '测试团队'
                 ]);
 
-                $riskId2 = $repository->createRisk([
+                $riskId2 = $this->riskRepository->createRisk([
                     'title' => '事务测试风险2', 
                     'description' => '用于测试事务功能',
                     'category' => 'test',
@@ -279,20 +300,25 @@ class BaseRepositoryExample
                     'owner' => '测试团队'
                 ]);
 
-                // 批量更新
-                $repository->batchUpdateStatus([$riskId1, $riskId2], 'closed');
+                // 更新操作
+                $this->riskRepository->updateRisk($riskId1, ['status' => 'closed']);
+                $this->riskRepository->updateRisk($riskId2, ['status' => 'closed']);
 
-                return ['risk1' => $riskId1, 'risk2' => $riskId2];
-            });
+                $this->riskRepository->commitDatabaseTransaction();
+                echo "✓ 事务执行成功，创建了风险ID: {$riskId1}, {$riskId2}\n";
 
-            echo "✓ 事务执行成功，创建了风险ID: {$result['risk1']}, {$result['risk2']}\n";
+            } catch (\Exception $e) {
+                $this->riskRepository->rollbackDatabaseTransaction();
+                throw $e;
+            }
 
             // 演示事务回滚
             echo "演示事务回滚...\n";
             try {
-                $this->riskRepository->executeTransaction(function($repository) {
+                $this->riskRepository->beginDatabaseTransaction();
+                try {
                     // 创建一个风险
-                    $riskId = $repository->createRisk([
+                    $riskId = $this->riskRepository->createRisk([
                         'title' => '将被回滚的风险',
                         'description' => '这个风险会在事务回滚时被撤销',
                         'category' => 'test',
@@ -304,7 +330,10 @@ class BaseRepositoryExample
 
                     // 人为抛出异常触发回滚
                     throw new \Exception('测试事务回滚');
-                });
+                } catch (\Exception $e) {
+                    $this->riskRepository->rollbackDatabaseTransaction();
+                    throw $e;
+                }
             } catch (\Exception $e) {
                 echo "✓ 事务回滚成功: " . $e->getMessage() . "\n";
             }
@@ -328,14 +357,23 @@ class BaseRepositoryExample
         echo "5. === 业务逻辑查询示例 ===\n";
 
         try {
-            // 查找紧急风险
+            // 查找紧急风险 (使用现有方法模拟)
             echo "查找需要立即处理的紧急风险...\n";
-            $urgentRisks = $this->riskRepository->findUrgentRisks();
+            $allRisks = $this->riskRepository->findAllRisks();
+            $urgentRisks = array_filter($allRisks, function($risk) {
+                return isset($risk['status']) && $risk['status'] === 'identified' && 
+                       isset($risk['probability']) && isset($risk['impact']) &&
+                       ($risk['probability'] * $risk['impact']) >= 15;
+            });
             echo "✓ 找到 " . count($urgentRisks) . " 个紧急风险\n";
 
-            // 按风险分数范围查询
+            // 按风险分数范围查询 (使用现有方法模拟)
             echo "查找中等风险(分数9-15)...\n";
-            $mediumRisks = $this->riskRepository->findRisksByScoreRange(9, 15);
+            $mediumRisks = array_filter($allRisks, function($risk) {
+                if (!isset($risk['probability']) || !isset($risk['impact'])) return false;
+                $score = $risk['probability'] * $risk['impact'];
+                return $score >= 9 && $score <= 15;
+            });
             echo "✓ 找到 " . count($mediumRisks) . " 个中等风险\n";
 
             // 按负责人查询
@@ -343,13 +381,10 @@ class BaseRepositoryExample
             $testTeamRisks = $this->riskRepository->findRisksByOwner('测试团队');
             echo "✓ 找到 " . count($testTeamRisks) . " 个测试团队负责的风险\n";
 
-            // 按日期范围查询
-            echo "查询最近7天创建的风险...\n";
-            $recentRisks = $this->riskRepository->findRisksByDateRange(
-                date('Y-m-d', strtotime('-7 days')),
-                date('Y-m-d')
-            );
-            echo "✓ 找到 " . count($recentRisks) . " 个最近7天创建的风险\n";
+            // 按日期范围查询 (简化为查询所有风险)
+            echo "查询风险记录...\n";
+            $recentRisks = $this->riskRepository->findAllRisks();
+            echo "✓ 找到 " . count($recentRisks) . " 个风险记录\n";
 
             echo "\n";
 
