@@ -6,163 +6,168 @@ use App\Core\Http\BaseController;
 use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Modules\Risk\Services\FeedbackService;
-use App\Core\Exceptions\ValidationException;
-use App\Core\Utils\Logger;
 
 /**
- * 反馈控制器类
- * 
- * 该类负责处理与风险反馈相关的所有HTTP请求，包括：
- * - 创建新的反馈
- * - 更新现有反馈
- * - 删除反馈记录
- * - 查询单个反馈详情
- * - 查询特定风险的所有反馈
- * - 按状态查询反馈
+ * 精简版反馈控制器 - 基础REST API
  */
-class FeedbackController extends BaseController {
-    /** @var FeedbackService 反馈服务实例 */
-    private FeedbackService $service;
+class FeedbackController extends BaseController
+{
+    private FeedbackService $feedbackService;
 
-    /**
-     * 构造函数
-     * 
-     * @param Request $request HTTP请求实例
-     * @param FeedbackService $service 反馈服务实例
-     */
-    public function __construct(Request $request, FeedbackService $service) {
+    public function __construct(Request $request, FeedbackService $feedbackService)
+    {
         parent::__construct($request);
-        $this->service = $service;
+        $this->feedbackService = $feedbackService;
     }
 
     /**
-     * 创建新的反馈记录
-     * 
-     * 接收POST请求，创建新的反馈记录。请求体应包含：
-     * - risk_id: 关联的风险ID
-     * - content: 反馈内容
-     * - type: 反馈类型（comment: 评论, suggestion: 建议, concern: 顾虑）
-     * - created_by: 创建者ID或名称
-    * @return void
-    */
-    public function create(): void {
+     * 获取所有反馈
+     * GET /api/feedbacks
+     */
+    public function index(): void
+    {
         try {
-            $data = $this->getBodyParam();
-            $feedbackId = $this->service->createFeedback($data);
-            Response::success(['id' => $feedbackId], '反馈创建成功');
-        } catch (ValidationException $e) {
-            Response::validationError($e->getErrors());
-        } catch (\RuntimeException $e) {
-            Response::error($e->getMessage(), 404);
+            $feedbacks = $this->feedbackService->getAllFeedbacks();
+            
+            Response::success([
+                'feedbacks' => array_map(fn($feedback) => $feedback->toArray(), $feedbacks),
+                'total' => count($feedbacks)
+            ]);
         } catch (\Exception $e) {
-            Logger::error('反馈创建失败', ['error' => $e->getMessage()]);
-            Response::error('创建反馈失败', 500);
+            Response::error('获取反馈列表失败: ' . $e->getMessage(), 500);
         }
     }
 
     /**
-     * 更新反馈记录
-     * 
-     * 接收PUT请求，更新指定ID的反馈记录。请求体可包含：
-     * - content: 反馈内容
-     * - type: 反馈类型（除非原始类型为general）
-     * - status: 反馈状态（open: 开放, closed: 已关闭, resolved: 已解决）
-     * 注意：不能修改关联的风险ID
+     * 获取单个反馈
+     * GET /api/feedbacks/{id}
      */
-    public function update(): void {
+    public function show(int $id): void
+    {
         try {
-            $id = (int)$this->getParam('id');
-            $data = $this->getBodyParam();
-            $this->service->updateFeedback($id, $data);
-            Response::success(null, '反馈更新成功');
-        } catch (ValidationException $e) {
-            Response::validationError($e->getErrors());
-        } catch (\RuntimeException $e) {
-            Response::error($e->getMessage(), 404);
-        } catch (\Exception $e) {
-            Logger::error('反馈更新失败', ['id' => $id, 'error' => $e->getMessage()]);
-            Response::error('更新反馈失败', 500);
-        }
-    }
-
-    /**
-     * 删除反馈记录
-     * 
-     * 接收DELETE请求，删除指定ID的反馈记录。
-     * 如果该反馈已经与节点关联，需要先解除关联才能删除。
-     * 删除反馈不会影响关联的风险记录。
-     */
-    public function delete(): void {
-        try {
-            $id = (int)$this->getParam('id');
-            $this->service->deleteFeedback($id);
-            Response::success(null, '反馈删除成功');
-        } catch (\RuntimeException $e) {
-            Response::error($e->getMessage(), 404);
-        } catch (\Exception $e) {
-            Logger::error('反馈删除失败', ['id' => $id, 'error' => $e->getMessage()]);
-            Response::error('删除反馈失败', 500);
-        }
-    }
-
-    /**
-     * 获取单个反馈记录详情
-     * 
-     * 接收GET请求，返回指定ID的反馈记录的详细信息，
-     * 包括反馈内容、类型、状态、创建者信息及时间戳等。
-     */
-    public function get(): void {
-        try {
-            $id = (int)$this->getParam('id');
-            $feedback = $this->service->getFeedback($id);
+            $feedback = $this->feedbackService->getFeedback($id);
+            
             if (!$feedback) {
-                Response::error('未找到指定反馈', 404);
+                Response::error('反馈不存在', 404);
                 return;
             }
-            Response::success($feedback);
+            
+            Response::success(['feedback' => $feedback->toArray()]);
         } catch (\Exception $e) {
-            Logger::error('反馈获取失败', ['id' => $id, 'error' => $e->getMessage()]);
-            Response::error('获取反馈信息失败', 500);
+            Response::error('获取反馈详情失败: ' . $e->getMessage(), 500);
         }
     }
 
     /**
-     * 获取指定风险的所有反馈
-     * 
-     * 接收GET请求，返回与指定风险ID关联的所有反馈记录。
-     * 结果按创建时间倒序排列，包括所有状态的反馈。
-     * 
+     * 创建反馈
+     * POST /api/feedbacks
      */
-    public function getByRisk(): void {
+    public function store(): void
+    {
         try {
-            $riskId = (int)$this->getParam('riskId');
-            $feedbacks = $this->service->getFeedbacksByRisk($riskId);
-            Response::success($feedbacks);
-        } catch (\RuntimeException $e) {
-            Response::error($e->getMessage(), 404);
+            $data = $this->getBodyParam();
+            $feedbackId = $this->feedbackService->createFeedback($data);
+            
+            Response::success(['feedback_id' => $feedbackId], '反馈创建成功', 201);
         } catch (\Exception $e) {
-            Logger::error('获取风险相关反馈失败', ['risk_id' => $riskId, 'error' => $e->getMessage()]);
-            Response::error('获取风险相关反馈失败', 500);
+            Response::error('创建反馈失败: ' . $e->getMessage(), 400);
         }
     }
 
     /**
-     * 按状态获取反馈记录
-     * 
-     * 接收GET请求，返回指定状态的所有反馈记录。
-     * 状态可以是：
-     * - open: 开放的反馈
-     * - closed: 已关闭的反馈
-     * - resolved: 已解决的反馈
+     * 更新反馈
+     * PUT /api/feedbacks/{id}
      */
-    public function getByStatus(): void {
+    public function update(int $id): void
+    {
         try {
-            $status = $this->getParam('status');
-            $feedbacks = $this->service->getFeedbacksByStatus($status);
-            Response::success($feedbacks);
+            $data = $this->getBodyParam();
+            $success = $this->feedbackService->updateFeedback($id, $data);
+            
+            if (!$success) {
+                Response::error('反馈不存在或更新失败', 404);
+                return;
+            }
+            
+            Response::success(null, '反馈更新成功');
         } catch (\Exception $e) {
-            Logger::error('按状态获取反馈失败', ['status' => $status, 'error' => $e->getMessage()]);
-            Response::error('按状态获取反馈失败', 500);
+            Response::error('更新反馈失败: ' . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * 删除反馈
+     * DELETE /api/feedbacks/{id}
+     */
+    public function destroy(int $id): void
+    {
+        try {
+            $success = $this->feedbackService->deleteFeedback($id);
+            
+            if (!$success) {
+                Response::error('反馈不存在或删除失败', 404);
+                return;
+            }
+            
+            Response::success(null, '反馈删除成功');
+        } catch (\Exception $e) {
+            Response::error('删除反馈失败: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * 根据风险ID获取反馈
+     * GET /api/feedbacks/risk/{riskId}
+     */
+    public function byRisk(int $riskId): void
+    {
+        try {
+            $feedbacks = $this->feedbackService->getFeedbacksByRisk($riskId);
+            
+            Response::success([
+                'feedbacks' => array_map(fn($feedback) => $feedback->toArray(), $feedbacks),
+                'risk_id' => $riskId,
+                'total' => count($feedbacks)
+            ]);
+        } catch (\Exception $e) {
+            Response::error('根据风险查询反馈失败: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * 根据节点ID获取反馈
+     * GET /api/feedbacks/node/{nodeId}
+     */
+    public function byNode(int $nodeId): void
+    {
+        try {
+            $feedbacks = $this->feedbackService->getFeedbacksByNode($nodeId);
+            
+            Response::success([
+                'feedbacks' => array_map(fn($feedback) => $feedback->toArray(), $feedbacks),
+                'node_id' => $nodeId,
+                'total' => count($feedbacks)
+            ]);
+        } catch (\Exception $e) {
+            Response::error('根据节点查询反馈失败: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * 获取高优先级反馈
+     * GET /api/feedbacks/high-priority
+     */
+    public function highPriority(): void
+    {
+        try {
+            $feedbacks = $this->feedbackService->getHighPriorityFeedbacks();
+            
+            Response::success([
+                'feedbacks' => array_map(fn($feedback) => $feedback->toArray(), $feedbacks),
+                'total' => count($feedbacks)
+            ]);
+        } catch (\Exception $e) {
+            Response::error('获取高优先级反馈失败: ' . $e->getMessage(), 500);
         }
     }
 }

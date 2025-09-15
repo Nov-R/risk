@@ -64,7 +64,12 @@ class Risk {
     // 获取器
     /** 获取风险ID */
     public function getId(): int {
-        return $this->id;
+        return $this->id ?? 0; // 如果未设置ID，返回0
+    }
+    
+    /** 设置风险ID */
+    public function setId(int $id): void {
+        $this->id = $id;
     }
     /** 获取风险名称 */
     public function getName(): string {

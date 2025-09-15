@@ -1099,7 +1099,7 @@ abstract class BaseRepository
     }
 
     /**
-     * 执行SQL查询
+     * 执行SQL查询（供子类使用）
      * 
      * @param string $sql SQL语句
      * @param array<string, mixed> $params 参数
@@ -1107,17 +1107,44 @@ abstract class BaseRepository
      * 
      * @return PDOStatement 执行结果
      * 
-     * @throws PDOException 当查询执行失败时
+     * @throws DatabaseException 当查询失败时
      */
-    private function executeQuery(string $sql, array $params, string $queryType): PDOStatement 
+    protected function executeQuery(string $sql, array $params, string $queryType = 'CUSTOM'): PDOStatement 
     {
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $startTime = microtime(true);
         
-        // 更新查询统计
-        $this->updateQueryStats($queryType);
-        
-        return $stmt;
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            
+            // 更新查询统计
+            $this->updateQueryStats($queryType);
+            
+            $queryTime = microtime(true) - $startTime;
+            
+            Logger::debug("执行查询[{$queryType}]", [
+                'table' => $this->getTableName(),
+                'sql' => $sql,
+                'params' => $this->sanitizeLogData($params),
+                'query_time' => round($queryTime * 1000, 2) . 'ms'
+            ]);
+            
+            return $stmt;
+            
+        } catch (PDOException $e) {
+            Logger::error("查询执行失败[{$queryType}]", [
+                'table' => $this->getTableName(),
+                'sql' => $sql,
+                'params' => $this->sanitizeLogData($params),
+                'error' => $e->getMessage()
+            ]);
+            
+            throw DatabaseException::fromPDOException(
+                $e,
+                "执行查询失败",
+                ['sql' => $sql]
+            );
+        }
     }
 
     /**

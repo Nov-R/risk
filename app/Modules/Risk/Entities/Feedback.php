@@ -13,6 +13,8 @@ class Feedback {
     private int $id;
     /** @var int 关联的风险ID */
     private int $riskId;
+    /** @var int 关联的节点ID */
+    private ?int $nodeId = null;
     /** @var string 反馈内容 */
     private string $content;
     /** @var string 反馈类型 */
@@ -34,19 +36,22 @@ class Feedback {
      * @param string $type 反馈类型
      * @param string $createdBy 创建者
      * @param string $status 反馈状态，默认pending
+     * @param int|null $nodeId 关联的节点ID
      */
     public function __construct(
         int $riskId,
         string $content,
         string $type,
         string $createdBy,
-        string $status = 'pending'
+        string $status = 'pending',
+        ?int $nodeId = null
     ) {
         $this->riskId = $riskId;
         $this->content = $content;
         $this->type = $type;
         $this->createdBy = $createdBy;
         $this->status = $status;
+        $this->nodeId = $nodeId;
         $this->createdAt = new \DateTime();
         $this->updatedAt = new \DateTime();
     }
@@ -59,6 +64,10 @@ class Feedback {
     /** 获取关联的风险ID */
     public function getRiskId(): int {
         return $this->riskId;
+    }
+    /** 获取关联的节点ID */
+    public function getNodeId(): ?int {
+        return $this->nodeId;
     }
     /** 获取反馈内容 */
     public function getContent(): string {
@@ -101,6 +110,11 @@ class Feedback {
         $this->status = $status;
         $this->updateTimestamp();
     }
+    /** 设置节点ID */
+    public function setNodeId(?int $nodeId): void {
+        $this->nodeId = $nodeId;
+        $this->updateTimestamp();
+    }
     /** 更新更新时间戳（内部方法） */
     private function updateTimestamp(): void {
         $this->updatedAt = new \DateTime();
@@ -140,7 +154,8 @@ class Feedback {
             $data['content'],
             $data['type'],
             $data['created_by'],
-            $data['status']
+            $data['status'],
+            isset($data['node_id']) ? (int)$data['node_id'] : null
         );
 
         // 反射设置受保护属性
@@ -170,6 +185,7 @@ class Feedback {
         return [
             'id' => $this->id,
             'risk_id' => $this->riskId ?? 0,
+            'node_id' => $this->nodeId,
             'content' => $this->content ?? '',
             'type' => $this->type ?? 'general',
             'status' => $this->status ?? 'pending',

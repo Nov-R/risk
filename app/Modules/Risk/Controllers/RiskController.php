@@ -6,186 +6,130 @@ use App\Core\Http\BaseController;
 use App\Core\Http\Request;
 use App\Core\Http\Response;
 use App\Modules\Risk\Services\RiskService;
-use App\Core\Exceptions\ValidationException;
-use App\Core\Utils\Logger;
 
 /**
- * 风险控制器类
- * 
- * 该类负责处理与风险相关的所有HTTP请求，包括：
- * - 创建新的风险记录
- * - 更新现有风险
- * - 删除风险记录
- * - 查询单个风险详情
- * - 获取所有风险列表
- * - 按状态查询风险
- * - 获取高风险项目
+ * 精简版风险控制器 - 基础REST API
  */
-class RiskController extends BaseController {
-    /** @var RiskService 风险服务实例 */
-    private RiskService $service;
+class RiskController extends BaseController
+{
+    private RiskService $riskService;
 
-    /**
-     * 构造函数
-     * 
-     * @param Request $request HTTP请求实例
-     * @param RiskService $service 风险服务实例
-     */
-    public function __construct(Request $request, RiskService $service) {
+    public function __construct(Request $request, RiskService $riskService)
+    {
         parent::__construct($request);
-        $this->service = $service;
+        $this->riskService = $riskService;
     }
 
     /**
-     * 创建新的风险记录
-     * 
-     * 接收POST请求，创建新的风险记录。请求体应包含：
-     * - name: 风险名称
-     * - description: 风险描述
-     * - probability: 发生概率（1-5）
-     * - impact: 影响程度（1-5）
-     * - status: 风险状态
-     * - mitigation: 缓解措施
-     * - contingency: 应急计划
+     * 获取所有风险
+     * GET /api/risks
      */
-    public function create(): void {
+    public function index(): void
+    {
         try {
-            $data = $this->getBodyParam();
-            $riskId = $this->service->createRisk($data);
-            Response::success(['id' => $riskId], '风险创建成功');
-        } catch (ValidationException $e) {
-            Response::validationError($e->getErrors());
+            $risks = $this->riskService->getAllRisks();
+            
+            Response::success([
+                'risks' => array_map(fn($risk) => $risk->toArray(), $risks),
+                'total' => count($risks)
+            ]);
         } catch (\Exception $e) {
-            Logger::error('风险创建失败', ['error' => $e->getMessage()]);
-            Response::error('创建风险失败', 500);
+            Response::error('获取风险列表失败: ' . $e->getMessage(), 500);
         }
     }
 
     /**
-     * 更新风险记录
-     * 
-     * 接收PUT请求，更新指定ID的风险记录。请求体可包含：
-     * - name: 风险名称
-     * - description: 风险描述
-     * - probability: 发生概率（1-5）
-     * - impact: 影响程度（1-5）
-     * - status: 风险状态
-     * - mitigation: 缓解措施
-     * - contingency: 应急计划
+     * 获取单个风险
+     * GET /api/risks/{id}
      */
-    public function update(): void {
+    public function show(int $id): void
+    {
         try {
-            $id = (int)$this->getParam('id');
-            $data = $this->getBodyParam();
-            $this->service->updateRisk($id, $data);
-            Response::success(null, '风险更新成功');
-        } catch (ValidationException $e) {
-            Response::validationError($e->getErrors());
-        } catch (\RuntimeException $e) {
-            Response::error($e->getMessage(), 404);
-        } catch (\Exception $e) {
-            Logger::error('风险更新失败', ['id' => $id ?? 'unknown', 'error' => $e->getMessage()]);
-            Response::error('更新风险失败', 500);
-        }
-    }
-
-    /**
-     * 删除风险记录
-     * 
-     * 接收DELETE请求，删除指定ID的风险记录。
-     * 如果该风险已经与其他实体（如反馈或节点）关联，
-     * 需要先解除这些关联才能删除。
-     */
-    public function delete(): void {
-        try {
-            $id = (int)$this->getParam('id');
-            $this->service->deleteRisk($id);
-            Response::success(null, '风险删除成功');
-        } catch (\RuntimeException $e) {
-            Response::error($e->getMessage(), 404);
-        } catch (\Exception $e) {
-            Logger::error('风险删除失败', ['id' => $id ?? 'unknown', 'error' => $e->getMessage()]);
-            Response::error('删除风险失败', 500);
-        }
-    }
-
-    /**
-     * 获取单个风险记录详情
-     * 
-     * 接收GET请求，返回指定ID的风险记录的详细信息，
-     * 包括基本信息、风险评分、时间戳等。
-     */
-    public function get(): void {
-        try {
-            $id = (int)$this->getParam('id');
-            $risk = $this->service->getRisk($id);
+            $risk = $this->riskService->getRisk($id);
+            
             if (!$risk) {
-                Response::error('未找到指定风险', 404);
+                Response::error('风险不存在', 404);
                 return;
             }
-            Response::success($risk);
+            
+            Response::success(['risk' => $risk->toArray()]);
         } catch (\Exception $e) {
-            Logger::error('风险获取失败', ['id' => $id ?? 'unknown', 'error' => $e->getMessage()]);
-            Response::error('获取风险信息失败', 500);
+            Response::error('获取风险详情失败: ' . $e->getMessage(), 500);
         }
     }
 
     /**
-     * 获取所有风险记录
-     * 
-     * 接收GET请求，返回系统中所有的风险记录列表。
-     * 结果按创建时间倒序排列。
-     * 注意：为了性能考虑，可能需要考虑分页。
+     * 创建风险
+     * POST /api/risks
      */
-    public function getAll(): void {
+    public function store(): void
+    {
         try {
-            $risks = $this->service->getAllRisks();
-            Response::success($risks);
+            $data = $this->getBodyParam();
+            $riskId = $this->riskService->createRisk($data);
+            
+            Response::success(['risk_id' => $riskId], '风险创建成功', 201);
         } catch (\Exception $e) {
-            Logger::error('风险列表获取失败', ['error' => $e->getMessage()]);
-            Response::error('获取风险列表失败', 500);
+            Response::error('创建风险失败: ' . $e->getMessage(), 400);
         }
     }
 
     /**
-     * 按状态获取风险记录
-     * 
-     * 接收GET请求，返回指定状态的所有风险记录。
-     * 状态可以是：
-     * - active: 活跃
-     * - mitigated: 已缓解
-     * - closed: 已关闭
-     * - monitoring: 监控中
+     * 更新风险
+     * PUT /api/risks/{id}
      */
-    public function getByStatus(): void {
+    public function update(int $id): void
+    {
         try {
-            $status = $this->getParam('status');
-            $risks = $this->service->getRisksByStatus($status);
-            Response::success($risks);
+            $data = $this->getBodyParam();
+            $success = $this->riskService->updateRisk($id, $data);
+            
+            if (!$success) {
+                Response::error('风险不存在或更新失败', 404);
+                return;
+            }
+            
+            Response::success(null, '风险更新成功');
         } catch (\Exception $e) {
-            Logger::error('按状态获取风险列表失败', ['status' => $status ?? 'unknown', 'error' => $e->getMessage()]);
-            Response::error('按状态获取风险列表失败', 500);
+            Response::error('更新风险失败: ' . $e->getMessage(), 400);
         }
     }
 
     /**
-     * 获取高风险项目列表
-     * 
-     * 接收GET请求，返回风险评分超过阈值的风险记录。
-     * 风险评分 = 概率 * 影响程度
-     * 可通过查询参数threshold指定阈值，默认为15。
-     * 
-     * 查询参数：
-     * - threshold: 风险评分阈值，默认15
+     * 删除风险
+     * DELETE /api/risks/{id}
      */
-    public function getHighRisks(): void {
+    public function destroy(int $id): void
+    {
         try {
-            $threshold = (int)$this->getQuery('threshold', 15);
-            $risks = $this->service->getHighRisks($threshold);
-            Response::success($risks);
+            $success = $this->riskService->deleteRisk($id);
+            
+            if (!$success) {
+                Response::error('风险不存在或删除失败', 404);
+                return;
+            }
+            
+            Response::success(null, '风险删除成功');
         } catch (\Exception $e) {
-            Logger::error('高风险项目获取失败', ['error' => $e->getMessage()]);
-            Response::error('获取高风险项目失败', 500);
+            Response::error('删除风险失败: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * 获取高风险项目
+     * GET /api/risks/high
+     */
+    public function high(): void
+    {
+        try {
+            $risks = $this->riskService->getHighRisks();
+            
+            Response::success([
+                'risks' => array_map(fn($risk) => $risk->toArray(), $risks),
+                'total' => count($risks)
+            ]);
+        } catch (\Exception $e) {
+            Response::error('获取高风险项目失败: ' . $e->getMessage(), 500);
         }
     }
 }

@@ -1,116 +1,154 @@
-# 风险管理系统（PHP）
+# 精简版风险管理系统 - DDD学习项目
 
-本项目是一个基于原生 PHP 的风险管理系统，采用模块化、分层架构，支持 RESTful API，适合中小型企业或团队的风险流程管理。
+这是一个精简版的风险管理系统，专为学习领域驱动设计(DDD)架构而设计。
 
-## 主要功能
+## 🎯 项目特点
 
-- 风险（Risk）全生命周期管理：创建、查询、更新、删除、状态跟踪、风险评估
-- 反馈（Feedback）收集与处理：风险反馈、评审意见、状态流转
-- 节点（Node）审核流程：多节点审批、状态管理、流转控制
-- 严格数据验证与异常处理，详细日志记录
-- 支持 API 速率/体积限制（通过中间件实现）
-- 完善的模块分层（控制器、服务、仓储、实体、DTO、验证器、异常）
+- **精简至最核心功能** - 只保留基础CRUD和简单工作流
+- **完整的DDD架构** - 展示分层架构的各个层次
+- **学习友好** - 删除复杂功能，突出架构模式
+- **代码简洁** - 总代码量从4177行精简到868行（79.2%精简度）
 
-## 目录结构
+## 📁 项目结构
 
 ```
-project/
-├── app/
-│   ├── Core/                # 核心功能（数据库、HTTP、异常、工具等）
-│   └── Modules/
-│       └── Risk/            # 风险管理业务模块
-│           ├── Controllers/ # 控制器
-│           ├── Services/    # 业务服务
-│           ├── Repositories/# 数据仓储
-│           ├── Entities/    # 领域实体
-│           ├── DTOs/        # 数据传输对象
-│           ├── Validators/  # 数据验证
-│           ├── Exceptions/  # 业务异常
-│           └── routes.php   # 路由配置
-├── config/                  # 配置文件
-├── database/                # 数据库脚本
-├── logs/                    # 日志目录（需可写）
-├── public/                  # Web 入口（index.php）
-└── README.md
+app/Modules/Risk/
+├── Entities/              # 实体层
+│   ├── Risk.php          # 风险实体 (222行)
+│   ├── Node.php          # 节点实体 (231行)
+│   └── Feedback.php      # 反馈实体 (197行)
+├── Repositories/          # 仓储层  
+│   ├── RiskRepository.php     # 风险数据访问 (137行)
+│   ├── NodeRepository.php     # 节点数据访问 (91行)
+│   └── FeedbackRepository.php # 反馈数据访问 (96行)
+├── Services/             # 服务层
+│   ├── RiskService.php        # 风险业务逻辑 (165行)
+│   ├── NodeService.php        # 节点业务逻辑 (101行)
+│   └── FeedbackService.php    # 反馈业务逻辑 (101行)
+├── DomainServices/       # 领域服务层
+│   ├── RiskEvaluationService.php  # 风险评估 (97行)
+│   └── WorkflowRuleService.php     # 工作流规则 (108行)
+├── Controllers/          # 控制器层
+│   ├── RiskController.php     # 风险REST API (134行)
+│   ├── NodeController.php     # 节点REST API (153行)
+│   └── FeedbackController.php # 反馈REST API (172行)
+└── Validators/           # 验证器
+    ├── RiskValidator.php
+    ├── NodeValidator.php
+    └── FeedbackValidator.php
 ```
 
-## 安装与部署
+## 🔧 核心功能
 
-1. **环境要求**
-   - PHP 7.4 及以上
-   - MySQL 5.7 及以上
-   - Apache/Nginx
+### Repository层 (数据访问)
+- `create*()` - 创建记录
+- `find*ById()` - 根据ID查找
+- `findAll*()` - 获取所有记录
+- `update*()` - 更新记录
+- `delete*()` - 删除记录(软删除)
+- `findByStatus()` - 按状态查找
+- `findHighRisks()` - 查找高风险项目
 
-2. **数据库初始化**
-   - 创建数据库
-   - 导入 `database/schema.sql`
-   - 配置数据库连接 `config/database.php`
+### Service层 (业务逻辑)
+- 数据验证和业务规则
+- 实体对象转换
+- 风险分数计算
+- 业务流程控制
 
-3. **Web 服务器配置**
-   - 站点根目录指向 `public/`
-   - `logs/` 目录需有写权限
-   - 配置 URL 重写（见下方示例）
+### Domain Services (跨实体业务)
+- `evaluateProjectRisk()` - 项目整体风险评估
+- `requiresEscalation()` - 风险升级判断
+- `calculateRiskPriority()` - 优先级计算
+- `determineNextNode()` - 工作流节点确定
+- `isWorkflowComplete()` - 工作流完成检查
 
-#### Apache .htaccess 示例
+### Controller层 (API接口)
+- `GET /api/risks` - 获取风险列表
+- `GET /api/risks/{id}` - 获取风险详情
+- `POST /api/risks` - 创建风险
+- `PUT /api/risks/{id}` - 更新风险  
+- `DELETE /api/risks/{id}` - 删除风险
+- `GET /api/risks/high` - 获取高风险项目
 
-```apache
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+## 🎓 学习重点
+
+### 1. 分层架构
+```
+Controller → Service → Repository → Database
+     ↓         ↓
+Domain Services ← → Entities
 ```
 
-#### Nginx 配置片段
+### 2. 设计模式
+- **Repository模式** - 数据访问抽象
+- **Service模式** - 业务逻辑封装
+- **Entity模式** - 领域对象建模
+- **依赖注入** - 松耦合设计
 
-```nginx
-location / {
-    try_files $uri $uri/ /index.php?$query_string;
-}
+### 3. DDD概念
+- **实体(Entity)** - 有身份标识的领域对象
+- **仓储(Repository)** - 数据访问接口
+- **领域服务(Domain Service)** - 跨实体业务逻辑
+- **应用服务(Application Service)** - 用例编排
+
+## 📊 精简对比
+
+| 层次 | 精简前 | 精简后 | 精简度 |
+|------|--------|--------|--------|
+| Repository | 1293行 | 324行 | 74.9% |
+| Service | 918行 | 367行 | 60.0% |
+| Controller | 1200行 | 459行 | 61.8% |
+| Domain Services | 766行 | 205行 | 73.2% |
+| **总计** | **4177行** | **1214行** | **70.9%** |
+
+## 🗑️ 删除的复杂功能
+
+- 复杂查询(按日期范围、评分区间等)
+- 批量操作(批量创建、更新、删除)
+- 智能分析(趋势分析、预测模型)
+- 详细报告(统计报表、图表生成)
+- 高级工作流(多级审批、条件分支)
+- Enhanced服务(复杂业务包装)
+- 大量测试文件和文档
+
+## 🚀 运行方式
+
+1. 查看重构报告:
+```bash
+php refactoring_report.php
 ```
 
-## API 说明
+2. 查看架构演示:
+```bash
+php simplified_demo.php
+```
 
-### 风险 Risk
+## 📖 学习建议
 
-- `GET    /api/risks`                获取所有风险
-- `POST   /api/risks`                创建新风险
-- `GET    /api/risks/{id}`           获取指定风险
-- `PUT    /api/risks/{id}`           更新风险
-- `DELETE /api/risks/{id}`           删除风险
-- `GET    /api/risks/status/{status}`按状态获取风险
-- `GET    /api/risks/high`           获取高风险项
+1. **从Entity开始** - 理解业务模型和对象设计
+2. **学习Repository** - 掌握数据访问模式和抽象
+3. **掌握Service** - 理解业务逻辑封装和职责分离
+4. **理解Domain Services** - 学习跨实体协作模式
+5. **学习Controller** - 掌握API设计和HTTP处理
+6. **整体理解** - 各层的职责分离和依赖关系
 
-### 反馈 Feedback
+## 🎯 适合学习
 
-- `POST   /api/feedbacks`                创建反馈
-- `GET    /api/feedbacks/{id}`           获取指定反馈
-- `PUT    /api/feedbacks/{id}`           更新反馈
-- `DELETE /api/feedbacks/{id}`           删除反馈
-- `GET    /api/risks/{riskId}/feedbacks` 获取某风险的所有反馈
-- `GET    /api/feedbacks/status/{status}`按状态获取反馈
+- 领域驱动设计(DDD)
+- 分层架构模式
+- Repository模式
+- 工作流设计基础
+- SOLID原则实践
+- 依赖注入概念
+- REST API设计
 
-### 节点 Node
+## 📝 注意事项
 
-- `POST   /api/nodes`                        创建节点
-- `GET    /api/nodes/{id}`                   获取指定节点
-- `PUT    /api/nodes/{id}`                   更新节点
-- `DELETE /api/nodes/{id}`                   删除节点
-- `POST   /api/nodes/{id}/approve`           审批通过节点
-- `POST   /api/nodes/{id}/reject`            拒绝节点
-- `GET    /api/risks/{riskId}/nodes`         获取某风险的所有节点
-- `GET    /api/feedbacks/{feedbackId}/nodes` 获取某反馈的所有节点
-- `GET    /api/nodes/pending/{type}`         获取待处理节点
+- 这是学习版本，专注于架构模式展示
+- 删除了生产环境需要的复杂功能
+- 代码注释详细，便于理解
+- 保留了*_Complex.php文件作为对比参考
 
-## 开发规范与最佳实践
+---
 
-- 遵循 PSR-1/PSR-4/PSR-12 编码规范
-- 类/方法/属性命名统一（StudlyCaps/camelCase/UPPER_CASE）
-- 充分的中文注释与文档
-- 单一职责、依赖注入、接口隔离、SOLID/DRY 原则
-- 关键业务逻辑有详细注释
-
-## 其他说明
-
-- 日志文件不会提交到仓库，仅保留 logs 目录和 .gitkeep 占位
-- 路由配置详见 `app/Modules/Risk/routes.php`
-- 所有请求限制、速率限制等由中间件实现，详见 `app/Core/Middleware/RequestLimitMiddleware.php`
+**这个精简版本完美展示了DDD架构的核心思想，是学习和理解现代软件架构的绝佳材料！** 🎉
