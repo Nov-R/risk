@@ -1,20 +1,29 @@
 import java.util.*;
-public class Publisher {
-    private List<Subscriber> subscribers = new ArrayList<>();
+public class Publisher implements Subject {
+    private final List<Observer> observers = new ArrayList<>();
     private String title;
     private String content;
     private String date;
-    public void addSubscriber(Subscriber subscriber){
-        subscribers.add(subscriber);
+    @Override
+    public void addObserver(Observer observer){
+        observers.add(observer);
     }
-
-    public void removeSubscriber(Subscriber subscriber){
-        subscribers.remove(subscriber);
+    @Override
+    /**
+     * 
+     * @param observer 观察者
+     */
+    public void removeObserver(Observer observer){
+        if(observers.contains(observer)) {
+            observers.remove(observer);
+        } else {
+            System.out.println("没有" + observer + "这个元素哦！");
+        }
     }
-
-    public void notifySubscribers(){
-        for(Subscriber subscriber:subscribers){
-            subscriber.update(title, content, date);
+    @Override
+    public void notifyObservers(){
+        for(Observer observer:observers){
+            observer.update(title, content, date);
         }
     }
 
@@ -22,7 +31,7 @@ public class Publisher {
         this.title = title;
         this.content = content;
         this.date = date;
-        notifySubscribers();
+        notifyObservers();
     }
 }
 
