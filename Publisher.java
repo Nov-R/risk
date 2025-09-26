@@ -23,7 +23,7 @@ public class Publisher implements Subject {
     @Override
     public void notifyObservers(){
         for(Observer observer:observers){
-            observer.update(title, content, date);
+            observer.update(this);
         }
     }
 
@@ -32,6 +32,17 @@ public class Publisher implements Subject {
         this.content = content;
         this.date = date;
         notifyObservers();
+    }
+
+    // 属性getter
+    public String getTitle(){
+        return this.title;
+    }
+    public String getContent(){
+        return this.content;
+    }
+    public String getDate(){
+        return this.date;
     }
 }
 

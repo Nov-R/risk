@@ -1,7 +1,8 @@
 public class Display implements Observer{
     @Override
-    public void update(String title, String content, String date){
-        System.out.println(title + content + date + this);
+    public void update(Subject s){
+        Publisher p = (Publisher)s;
+        System.out.println(p.getTitle() +  p.getContent() + p.getDate());
     }
 
     public void fly(){

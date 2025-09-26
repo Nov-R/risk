@@ -4,9 +4,9 @@ public class Subscriber implements Observer {
         this.name = name;
     }
     @Override
-    public void update(String title, String content, String date) {
-        System.out.println("订阅者" + name + "收到新闻：" + content);
-
+    public void update(Subject s){
+        Publisher p = (Publisher)s;
+        System.out.println(p.getTitle() + "!!!!!" +  p.getContent() + p.getDate());
     }
     @Override
     public String toString(){
