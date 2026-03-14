@@ -12,6 +12,9 @@
 
 // API Routes Configuration
 return [
+    '/api/greet' => [
+        'GET' => 'GreetingController@greet'
+    ],
     '/api/risks' => [
         'GET' => 'RiskController@getAll',
         'POST' => 'RiskController@create'

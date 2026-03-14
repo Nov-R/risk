@@ -81,6 +81,7 @@ class Router {
      */
     private function getControllerClass(string $controllerName): ?string {
         $controllerMap = [
+            'GreetingController' => \App\Modules\Risk\Controllers\GreetingController::class,
             'RiskController' => \App\Modules\Risk\Controllers\RiskController::class,
             'FeedbackController' => \App\Modules\Risk\Controllers\FeedbackController::class,
             'NodeController' => \App\Modules\Risk\Controllers\NodeController::class,
