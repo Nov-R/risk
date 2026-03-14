@@ -84,6 +84,7 @@ class Router {
             'RiskController' => \App\Modules\Risk\Controllers\RiskController::class,
             'FeedbackController' => \App\Modules\Risk\Controllers\FeedbackController::class,
             'NodeController' => \App\Modules\Risk\Controllers\NodeController::class,
+            'GreetingController' => \App\Modules\Risk\Controllers\GreetingController::class,
         ];
         
         return $controllerMap[$controllerName] ?? null;
